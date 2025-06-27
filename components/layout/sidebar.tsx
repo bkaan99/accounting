@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard,
@@ -10,35 +11,67 @@ import {
   TrendingUp,
   Settings,
   Building2,
+  Shield,
+  UserCog,
+  BarChart3,
 } from 'lucide-react'
 
-const menuItems = [
-  {
-    title: 'Dashboard',
-    href: '/dashboard',
-    icon: LayoutDashboard,
-  },
-  {
-    title: 'Müşteriler',
-    href: '/clients',
-    icon: Users,
-  },
-  {
-    title: 'Faturalar',
-    href: '/invoices',
-    icon: FileText,
-  },
-  {
-    title: 'İşlemler',
-    href: '/transactions',
-    icon: TrendingUp,
-  },
-  {
-    title: 'Ayarlar',
-    href: '/settings',
-    icon: Settings,
-  },
-]
+const getUserMenuItems = (userRole?: string) => {
+  const baseItems = [
+    {
+      title: 'Dashboard',
+      href: '/dashboard',
+      icon: LayoutDashboard,
+    },
+    {
+      title: 'Müşteriler',
+      href: '/clients',
+      icon: Users,
+    },
+    {
+      title: 'Faturalar',
+      href: '/invoices',
+      icon: FileText,
+    },
+    {
+      title: 'İşlemler',
+      href: '/transactions',
+      icon: TrendingUp,
+    },
+    {
+      title: 'Ayarlar',
+      href: '/settings',
+      icon: Settings,
+    },
+  ]
+
+  // Süperadmin için ek menüler
+  if (userRole === 'SUPERADMIN') {
+    baseItems.splice(
+      -1,
+      0,
+      ...[
+        {
+          title: 'Kullanıcı Yönetimi',
+          href: '/admin/users',
+          icon: UserCog,
+        },
+        {
+          title: 'Global İstatistikler',
+          href: '/admin/stats',
+          icon: BarChart3,
+        },
+        {
+          title: 'Sistem Yönetimi',
+          href: '/admin/system',
+          icon: Shield,
+        },
+      ]
+    )
+  }
+
+  return baseItems
+}
 
 interface SidebarProps {
   isCollapsed?: boolean
@@ -46,6 +79,8 @@ interface SidebarProps {
 
 export function Sidebar({ isCollapsed = false }: SidebarProps) {
   const pathname = usePathname()
+  const { data: session } = useSession()
+  const menuItems = getUserMenuItems(session?.user?.role)
 
   return (
     <div
@@ -93,4 +128,4 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
       </nav>
     </div>
   )
-} 
+}

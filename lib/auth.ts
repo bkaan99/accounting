@@ -48,6 +48,7 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name,
           company: user.company,
+          role: user.role,
         }
       },
     }),
@@ -59,6 +60,7 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.company = user.company
+        token.role = user.role
       }
       return token
     },
@@ -66,11 +68,13 @@ export const authOptions: NextAuthOptions = {
       if (token) {
         session.user.id = token.sub!
         session.user.company = token.company as string
+        session.user.role = token.role as string
       }
       return session
     },
   },
   pages: {
     signIn: '/login',
+    signOut: '/login',
   },
 } 

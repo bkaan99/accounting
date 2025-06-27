@@ -9,14 +9,15 @@ async function main() {
   
   const user = await prisma.user.upsert({
     where: { email: 'test@muhasebe.com' },
-    update: {},
+    update: { role: 'SUPERADMIN' },
     create: {
       email: 'test@muhasebe.com',
-      name: 'Test Kullanıcı',
+      name: 'Test Kullanıcı (Süperadmin)',
       password: hashedPassword,
       company: 'Muhasebe A.Ş.',
       phone: '+90 532 123 45 67',
       address: 'İstanbul, Türkiye',
+      role: 'SUPERADMIN',
     },
   })
 
@@ -50,8 +51,10 @@ async function main() {
   })
 
   // Test faturaları oluştur
-  const invoice1 = await prisma.invoice.create({
-    data: {
+  const invoice1 = await prisma.invoice.upsert({
+    where: { number: 'F-2024-001' },
+    update: {},
+    create: {
       number: 'F-2024-001',
       clientId: client1.id,
       userId: user.id,
@@ -80,8 +83,10 @@ async function main() {
     },
   })
 
-  const invoice2 = await prisma.invoice.create({
-    data: {
+  const invoice2 = await prisma.invoice.upsert({
+    where: { number: 'F-2024-002' },
+    update: {},
+    create: {
       number: 'F-2024-002',
       clientId: client2.id,
       userId: user.id,
@@ -150,8 +155,39 @@ async function main() {
     ],
   })
 
+  // Normal bir kullanıcı da ekleyelim
+  const normalUser = await prisma.user.upsert({
+    where: { email: 'user@example.com' },
+    update: {},
+    create: {
+      email: 'user@example.com',
+      name: 'Normal Kullanıcı',
+      password: hashedPassword,
+      company: 'Demo Şirketi',
+      phone: '+90 532 111 22 33',
+      address: 'Ankara, Türkiye',
+      role: 'USER',
+    },
+  })
+
+  // Normal kullanıcı için bir müşteri ekleyelim
+  await prisma.client.upsert({
+    where: { id: 'client-demo' },
+    update: {},
+    create: {
+      id: 'client-demo',
+      name: 'Demo Müşteri',
+      email: 'demo@client.com',
+      phone: '+90 212 333 44 55',
+      address: 'İzmir, Türkiye',
+      taxId: '5555555555',
+      userId: normalUser.id,
+    },
+  })
+
   console.log('✅ Seed veriler başarıyla oluşturuldu!')
-  console.log('Test kullanıcı: test@muhasebe.com / 123456')
+  console.log('Süperadmin: test@muhasebe.com / 123456')
+  console.log('Normal kullanıcı: user@example.com / 123456')
 }
 
 main()

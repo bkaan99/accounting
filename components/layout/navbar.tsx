@@ -11,8 +11,11 @@ interface NavbarProps {
 export function Navbar({ onToggleSidebar }: NavbarProps) {
   const { data: session } = useSession()
 
-  const handleSignOut = () => {
-    signOut({ callbackUrl: '/login' })
+  const handleSignOut = async () => {
+    await signOut({
+      callbackUrl: '/login',
+      redirect: true,
+    })
   }
 
   return (
@@ -27,8 +30,13 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
           <Menu className="h-5 w-5" />
         </Button>
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">
-            Hoşgeldiniz, {session?.user?.name}
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center space-x-3">
+            <span>Hoşgeldiniz, {session?.user?.name}</span>
+            {session?.user?.role === 'SUPERADMIN' && (
+              <span className="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded-full">
+                Süperadmin
+              </span>
+            )}
           </h2>
           {session?.user?.company && (
             <p className="text-sm text-gray-500">{session.user.company}</p>
@@ -53,4 +61,4 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
       </div>
     </header>
   )
-} 
+}

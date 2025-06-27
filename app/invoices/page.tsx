@@ -42,8 +42,12 @@ export default async function InvoicesPage() {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Faturalar</h1>
-            <p className="text-gray-600">Faturalarınızı yönetin</p>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+              Faturalar
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              Faturalarınızı yönetin
+            </p>
           </div>
           <Link href="/invoices/new">
             <Button className="flex items-center space-x-2">
@@ -64,10 +68,10 @@ export default async function InvoicesPage() {
             {invoices.length === 0 ? (
               <div className="text-center py-12">
                 <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
                   Henüz fatura yok
                 </h3>
-                <p className="text-gray-600 mb-4">
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
                   İlk faturanızı oluşturmak için aşağıdaki butona tıklayın.
                 </p>
                 <Link href="/invoices/new">

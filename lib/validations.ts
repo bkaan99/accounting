@@ -35,7 +35,23 @@ export const TransactionSchema = z.object({
 export const InvoiceItemSchema = z.object({
   description: z.string().min(1, 'Açıklama giriniz'),
   quantity: z.number().positive('Miktar pozitif olmalıdır'),
-  price: z.number().positive('Fiyat pozitif olmalıdır'),
+  unitPrice: z.number().positive('Fiyat pozitif olmalıdır'),
+})
+
+export const ClientInfoSchema = z.object({
+  name: z.string().min(1, 'Müşteri adı gerekli'),
+  email: z.string().email('Geçerli e-posta giriniz').optional().or(z.literal('')),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+})
+
+export const invoiceSchema = z.object({
+  clientId: z.string().min(1, 'Müşteri seçiniz'),
+  issueDate: z.string(),
+  dueDate: z.string(),
+  status: z.enum(['DRAFT', 'SENT', 'PAID', 'OVERDUE']).optional(),
+  notes: z.string().optional(),
+  items: z.array(InvoiceItemSchema).min(1, 'En az bir kalem ekleyiniz'),
 })
 
 export const InvoiceSchema = z.object({
@@ -58,4 +74,6 @@ export type ClientInput = z.infer<typeof ClientSchema>
 export type TransactionInput = z.infer<typeof TransactionSchema>
 export type InvoiceInput = z.infer<typeof InvoiceSchema>
 export type InvoiceItemInput = z.infer<typeof InvoiceItemSchema>
+export type InvoiceCreateInput = z.infer<typeof invoiceSchema>
+export type ClientInfoInput = z.infer<typeof ClientInfoSchema>
 export type SettingsInput = z.infer<typeof SettingsSchema> 

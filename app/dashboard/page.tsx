@@ -195,7 +195,7 @@ export default async function DashboardPage() {
                     Henüz işlem bulunmuyor
                   </p>
                 ) : (
-                  dashboardData.recentTransactions.map((transaction) => (
+                  dashboardData.recentTransactions.map((transaction: any) => (
                     <div
                       key={transaction.id}
                       className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
@@ -238,7 +238,7 @@ export default async function DashboardPage() {
                     Henüz fatura bulunmuyor
                   </p>
                 ) : (
-                  dashboardData.recentInvoices.map((invoice) => (
+                  dashboardData.recentInvoices.map((invoice: any) => (
                     <div
                       key={invoice.id}
                       className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"

@@ -14,6 +14,7 @@ import {
   Shield,
   UserCog,
   BarChart3,
+  HelpCircle,
 } from 'lucide-react'
 
 const getUserMenuItems = (userRole?: string) => {
@@ -42,6 +43,11 @@ const getUserMenuItems = (userRole?: string) => {
       title: 'Ayarlar',
       href: '/settings',
       icon: Settings,
+    },
+    {
+      title: 'Yardım',
+      href: '/help',
+      icon: HelpCircle,
     },
   ]
 

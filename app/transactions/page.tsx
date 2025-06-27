@@ -1,7 +1,7 @@
-import { getServerSession } from 'next-auth'
-import { redirect } from 'next/navigation'
-import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -16,41 +16,77 @@ import {
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { Plus, TrendingUp, TrendingDown, DollarSign } from 'lucide-react'
 import { TransactionActions } from '@/components/transaction-actions'
+import { TransactionFilters } from '@/components/transaction-filters'
 import Link from 'next/link'
 
-async function getTransactionsData(userId: string) {
-  const [transactions, totalIncome, totalExpenses] = await Promise.all([
-    prisma.transaction.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-    }),
-    prisma.transaction.aggregate({
-      where: { userId, type: 'INCOME' },
-      _sum: { amount: true },
-    }),
-    prisma.transaction.aggregate({
-      where: { userId, type: 'EXPENSE' },
-      _sum: { amount: true },
-    }),
-  ])
-
-  return {
-    transactions,
-    totalIncome: totalIncome._sum.amount || 0,
-    totalExpenses: totalExpenses._sum.amount || 0,
-  }
+interface Transaction {
+  id: string
+  type: 'INCOME' | 'EXPENSE'
+  category: string
+  amount: number
+  description?: string
+  date: string
+  createdAt: string
+  updatedAt: string
 }
 
-export default async function TransactionsPage() {
-  const session = await getServerSession(authOptions)
+export default function TransactionsPage() {
+  const { data: session, status } = useSession()
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [filteredTransactions, setFilteredTransactions] = useState<
+    Transaction[]
+  >([])
+  const [loading, setLoading] = useState(true)
 
-  if (!session?.user?.id) {
-    redirect('/login')
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetchTransactions()
+    }
+  }, [status])
+
+  const fetchTransactions = async () => {
+    try {
+      const response = await fetch('/api/transactions')
+      if (response.ok) {
+        const data = await response.json()
+        setTransactions(data)
+        setFilteredTransactions(data)
+      }
+    } catch (error) {
+      console.error('Error fetching transactions:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const { transactions, totalIncome, totalExpenses } =
-    await getTransactionsData(session.user.id)
-  const netProfit = totalIncome - totalExpenses
+  const calculateSummary = (txns: Transaction[]) => {
+    const totalIncome = txns
+      .filter((t) => t.type === 'INCOME')
+      .reduce((sum, t) => sum + t.amount, 0)
+
+    const totalExpenses = txns
+      .filter((t) => t.type === 'EXPENSE')
+      .reduce((sum, t) => sum + t.amount, 0)
+
+    return {
+      totalIncome,
+      totalExpenses,
+      netProfit: totalIncome - totalExpenses,
+    }
+  }
+
+  const { totalIncome, totalExpenses, netProfit } =
+    calculateSummary(filteredTransactions)
+
+  if (loading) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-lg">Yükleniyor...</div>
+        </div>
+      </MainLayout>
+    )
+  }
 
   return (
     <MainLayout>
@@ -85,6 +121,10 @@ export default async function TransactionsPage() {
               <div className="text-2xl font-bold text-green-600">
                 {formatCurrency(totalIncome)}
               </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {filteredTransactions.filter((t) => t.type === 'INCOME').length}{' '}
+                işlem
+              </p>
             </CardContent>
           </Card>
 
@@ -99,6 +139,13 @@ export default async function TransactionsPage() {
               <div className="text-2xl font-bold text-red-600">
                 {formatCurrency(totalExpenses)}
               </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {
+                  filteredTransactions.filter((t) => t.type === 'EXPENSE')
+                    .length
+                }{' '}
+                işlem
+              </p>
             </CardContent>
           </Card>
 
@@ -115,30 +162,53 @@ export default async function TransactionsPage() {
               >
                 {formatCurrency(netProfit)}
               </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {filteredTransactions.length} toplam işlem
+              </p>
             </CardContent>
           </Card>
         </div>
 
+        {/* Filters */}
+        <TransactionFilters
+          transactions={transactions}
+          onFilteredTransactions={setFilteredTransactions}
+        />
+
         <Card>
           <CardHeader>
-            <CardTitle>Tüm İşlemler</CardTitle>
+            <CardTitle className="flex items-center justify-between">
+              <span>Tüm İşlemler</span>
+              {filteredTransactions.length !== transactions.length && (
+                <span className="text-sm font-normal text-gray-500">
+                  {filteredTransactions.length} / {transactions.length} işlem
+                  gösteriliyor
+                </span>
+              )}
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            {transactions.length === 0 ? (
+            {filteredTransactions.length === 0 ? (
               <div className="text-center py-12">
                 <DollarSign className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-                  Henüz işlem yok
+                  {transactions.length === 0
+                    ? 'Henüz işlem yok'
+                    : 'Filtreye uygun işlem bulunamadı'}
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400 mb-4">
-                  İlk işleminizi eklemek için aşağıdaki butona tıklayın.
+                  {transactions.length === 0
+                    ? 'İlk işleminizi eklemek için aşağıdaki butona tıklayın.'
+                    : 'Filtre kriterlerinizi değiştirmeyi deneyin.'}
                 </p>
-                <Link href="/transactions/new">
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Yeni İşlem Ekle
-                  </Button>
-                </Link>
+                {transactions.length === 0 && (
+                  <Link href="/transactions/new">
+                    <Button>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Yeni İşlem Ekle
+                    </Button>
+                  </Link>
+                )}
               </div>
             ) : (
               <Table>
@@ -153,7 +223,7 @@ export default async function TransactionsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {transactions.map((transaction) => (
+                  {filteredTransactions.map((transaction) => (
                     <TableRow key={transaction.id}>
                       <TableCell>{formatDate(transaction.date)}</TableCell>
                       <TableCell>

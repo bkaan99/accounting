@@ -51,25 +51,75 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { status, notes } = body
+    
+    // Sadece durum güncellemesi mi yoksa tam düzenleme mi?
+    if (body.items && body.clientId) {
+      // Tam fatura düzenlemesi
+      const { clientId, issueDate, dueDate, status, notes, items } = body
 
-    const invoice = await prisma.invoice.update({
-      where: { 
-        id: params.id,
-        userId: session.user.id,
-      },
-      data: {
-        status,
-        notes,
-        updatedAt: new Date(),
-      },
-      include: {
-        clientInfo: true,
-        items: true,
-      }
-    })
+      // Calculate total amount
+      const totalAmount = items.reduce(
+        (sum: number, item: any) => sum + (item.quantity * item.unitPrice),
+        0
+      )
 
-    return NextResponse.json(invoice)
+      // Önce mevcut invoice item'larını sil
+      await prisma.invoiceItem.deleteMany({
+        where: { invoiceId: params.id }
+      })
+
+      // Invoice'ı güncelle ve yeni item'ları ekle
+      const invoice = await prisma.invoice.update({
+        where: { 
+          id: params.id,
+          userId: session.user.id,
+        },
+        data: {
+          clientId,
+          issueDate: new Date(issueDate),
+          dueDate: new Date(dueDate),
+          status,
+          notes,
+          totalAmount,
+          updatedAt: new Date(),
+          items: {
+            create: items.map((item: any) => ({
+              description: item.description,
+              quantity: item.quantity,
+              price: item.unitPrice,
+              total: item.quantity * item.unitPrice,
+            }))
+          }
+        },
+        include: {
+          clientInfo: true,
+          items: true,
+        }
+      })
+
+      return NextResponse.json(invoice)
+    } else {
+      // Sadece durum güncellemesi
+      const { status, notes } = body
+
+      const invoice = await prisma.invoice.update({
+        where: { 
+          id: params.id,
+          userId: session.user.id,
+        },
+        data: {
+          status,
+          notes,
+          updatedAt: new Date(),
+        },
+        include: {
+          clientInfo: true,
+          items: true,
+        }
+      })
+
+      return NextResponse.json(invoice)
+    }
   } catch (error) {
     console.error('Invoice update error:', error)
     return NextResponse.json(

@@ -14,7 +14,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import { Plus, FileText, Eye } from 'lucide-react'
+import { Plus, FileText } from 'lucide-react'
+import { InvoiceActions } from '@/components/invoice-actions'
 import Link from 'next/link'
 
 async function getInvoices(userId: string) {
@@ -128,13 +129,7 @@ export default async function InvoicesPage() {
                         </span>
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end space-x-2">
-                          <Link href={`/invoices/${invoice.id}`}>
-                            <Button variant="outline" size="sm">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                        </div>
+                        <InvoiceActions invoice={invoice} />
                       </TableCell>
                     </TableRow>
                   ))}

@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/table'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { Plus, TrendingUp, TrendingDown, DollarSign } from 'lucide-react'
+import { TransactionActions } from '@/components/transaction-actions'
 import Link from 'next/link'
 
 async function getTransactionsData(userId: string) {
@@ -56,8 +57,12 @@ export default async function TransactionsPage() {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">İşlemler</h1>
-            <p className="text-gray-600">Gelir ve giderlerinizi takip edin</p>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+              İşlemler
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              Gelir ve giderlerinizi takip edin
+            </p>
           </div>
           <Link href="/transactions/new">
             <Button className="flex items-center space-x-2">
@@ -122,10 +127,10 @@ export default async function TransactionsPage() {
             {transactions.length === 0 ? (
               <div className="text-center py-12">
                 <DollarSign className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
                   Henüz işlem yok
                 </h3>
-                <p className="text-gray-600 mb-4">
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
                   İlk işleminizi eklemek için aşağıdaki butona tıklayın.
                 </p>
                 <Link href="/transactions/new">
@@ -144,6 +149,7 @@ export default async function TransactionsPage() {
                     <TableHead>Kategori</TableHead>
                     <TableHead>Açıklama</TableHead>
                     <TableHead className="text-right">Tutar</TableHead>
+                    <TableHead className="text-right">İşlemler</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -181,6 +187,9 @@ export default async function TransactionsPage() {
                           {transaction.type === 'INCOME' ? '+' : '-'}
                           {formatCurrency(transaction.amount)}
                         </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <TransactionActions transactionId={transaction.id} />
                       </TableCell>
                     </TableRow>
                   ))}

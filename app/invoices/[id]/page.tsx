@@ -15,6 +15,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { formatCurrency, formatDate } from '@/lib/utils'
+import { downloadInvoicePDF, previewInvoicePDF } from '@/lib/pdf-generator'
 import {
   ArrowLeft,
   Edit3,
@@ -23,6 +24,7 @@ import {
   Download,
   Send,
   CheckCircle,
+  Eye,
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -132,6 +134,18 @@ export default function InvoiceDetailPage() {
       } catch (error) {
         console.error('Error deleting invoice:', error)
       }
+    }
+  }
+
+  const handleDownloadPDF = () => {
+    if (invoice) {
+      downloadInvoicePDF(invoice)
+    }
+  }
+
+  const handlePreviewPDF = () => {
+    if (invoice) {
+      previewInvoicePDF(invoice)
     }
   }
 
@@ -381,15 +395,31 @@ export default function InvoiceDetailPage() {
                   </Button>
                 )}
 
-                <Button variant="outline" className="w-full">
-                  <Download className="h-4 w-4 mr-2" />
-                  PDF İndir
-                </Button>
+                <div className="space-y-2">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleDownloadPDF}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    PDF İndir
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={handlePreviewPDF}
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    PDF Önizle
+                  </Button>
+                </div>
 
-                <Button variant="outline" className="w-full">
-                  <Edit3 className="h-4 w-4 mr-2" />
-                  Düzenle
-                </Button>
+                <Link href={`/invoices/${invoice.id}/edit`}>
+                  <Button variant="outline" className="w-full">
+                    <Edit3 className="h-4 w-4 mr-2" />
+                    Düzenle
+                  </Button>
+                </Link>
 
                 <Button
                   variant="outline"

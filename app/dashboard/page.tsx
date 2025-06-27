@@ -97,7 +97,13 @@ export default async function DashboardPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+        <div
+          className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${
+            session.user.role === 'SUPERADMIN'
+              ? 'lg:grid-cols-5'
+              : 'lg:grid-cols-4'
+          }`}
+        >
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
@@ -156,22 +162,24 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Çalışma Süresi
-              </CardTitle>
-              <Clock className="h-4 w-4 text-orange-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-orange-600">
-                {formatUptime(startTime)}
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Uygulama başlangıcından beri
-              </p>
-            </CardContent>
-          </Card>
+          {session.user.role === 'SUPERADMIN' && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Çalışma Süresi
+                </CardTitle>
+                <Clock className="h-4 w-4 text-orange-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-orange-600">
+                  {formatUptime(startTime)}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Uygulama başlangıcından beri
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

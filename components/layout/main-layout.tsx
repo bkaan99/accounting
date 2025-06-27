@@ -16,7 +16,7 @@ export function MainLayout({ children }: MainLayoutProps) {
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
       </div>
     )
@@ -27,12 +27,16 @@ export function MainLayout({ children }: MainLayoutProps) {
   }
 
   return (
-    <div className="h-screen flex bg-gray-50">
+    <div className="h-screen flex bg-gray-50 dark:bg-gray-900">
       <Sidebar isCollapsed={sidebarCollapsed} />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Navbar onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)} />
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        <Navbar
+          onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
+        />
+        <main className="flex-1 overflow-y-auto p-6 bg-gray-50 dark:bg-gray-900">
+          {children}
+        </main>
       </div>
     </div>
   )
-} 
+}

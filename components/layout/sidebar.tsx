@@ -45,6 +45,12 @@ const getUserMenuItems = (userRole?: string) => {
       gradient: 'from-orange-500 to-red-500',
     },
     {
+      title: 'Raporlar',
+      href: '/reports',
+      icon: BarChart3,
+      gradient: 'from-indigo-500 to-purple-500',
+    },
+    {
       title: 'Ayarlar',
       href: '/settings',
       icon: Settings,

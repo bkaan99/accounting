@@ -103,13 +103,13 @@
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%);
   }
 
-  /* Hover efektleri */
-  .hover-lift {
-    @apply transition-all duration-300 hover:scale-105 hover:shadow-xl;
+  /* Hover efektleri - sadece gölge */
+  .hover-shadow {
+    @apply transition-shadow duration-200 hover:shadow-lg;
   }
 
-  .dark .hover-lift:hover {
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  .dark .hover-shadow:hover {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
   }
 
   /* Gradient text efekti */

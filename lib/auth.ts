@@ -26,6 +26,15 @@ export const authOptions: NextAuthOptions = {
           where: {
             email: credentials.email,
           },
+          select: {
+            id: true,
+            email: true,
+            password: true,
+            name: true,
+            company: true,
+            companyLogo: true,
+            role: true,
+          },
         })
 
         if (!user) {
@@ -46,6 +55,7 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name || '',
           company: user.company || '',
+          companyLogo: user.companyLogo || '',
           role: user.role,
         }
       },
@@ -70,6 +80,7 @@ export const authOptions: NextAuthOptions = {
             name: true,
             email: true,
             company: true,
+            companyLogo: true,
             role: true,
           },
         })
@@ -78,6 +89,7 @@ export const authOptions: NextAuthOptions = {
           token.name = freshUser.name || ''
           token.email = freshUser.email
           token.company = freshUser.company || ''
+          token.companyLogo = freshUser.companyLogo || ''
           token.role = freshUser.role
         }
       }
@@ -90,6 +102,7 @@ export const authOptions: NextAuthOptions = {
         session.user.name = token.name as string
         session.user.email = token.email as string
         session.user.company = token.company as string
+        session.user.companyLogo = token.companyLogo as string
         session.user.role = token.role as string
       }
       return session

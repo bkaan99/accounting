@@ -45,6 +45,7 @@ model User {
   emailVerified  DateTime?
   image          String?
   company        String?
+  companyLogo    String?   // Şirket logosu URL'i
   taxId          String?
   companyAddress String?
   website        String?

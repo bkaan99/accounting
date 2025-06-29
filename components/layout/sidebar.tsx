@@ -107,8 +107,16 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
     >
       <div className="p-6 border-b border-gray-200/50 dark:border-gray-700/30">
         <div className="flex items-center space-x-3">
-          <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-lg">
-            <Building2 className="h-8 w-8 text-white" />
+          <div className="w-12 h-12 rounded-xl shadow-lg overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+            {session?.user?.companyLogo ? (
+              <img 
+                src={session.user.companyLogo} 
+                alt="Şirket Logosu" 
+                className="w-full h-full object-contain"
+              />
+            ) : (
+              <Building2 className="h-8 w-8 text-white" />
+            )}
           </div>
           {!isCollapsed && (
             <div>

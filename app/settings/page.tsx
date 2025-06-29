@@ -19,9 +19,6 @@ interface UserSettings {
   phone?: string
   address?: string
   company?: string
-  taxId?: string
-  companyAddress?: string
-  website?: string
 }
 
 export default function SettingsPage() {
@@ -41,9 +38,6 @@ export default function SettingsPage() {
 
   const [companyForm, setCompanyForm] = useState({
     company: '',
-    taxId: '',
-    companyAddress: '',
-    website: '',
   })
 
   const [passwordForm, setPasswordForm] = useState({
@@ -79,9 +73,6 @@ export default function SettingsPage() {
         })
         setCompanyForm({
           company: data.company || '',
-          taxId: data.taxId || '',
-          companyAddress: data.companyAddress || '',
-          website: data.website || '',
         })
       } else {
         const errorData = await response.json()
@@ -337,38 +328,8 @@ export default function SettingsPage() {
                     placeholder="Şirket adınız"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="taxId">Vergi Numarası</Label>
-                  <Input 
-                    id="taxId" 
-                    value={companyForm.taxId}
-                    onChange={(e) =>
-                      setCompanyForm({ ...companyForm, taxId: e.target.value })
-                    }
-                    placeholder="1234567890" 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="companyAddress">Şirket Adresi</Label>
-                  <Input
-                    id="companyAddress"
-                    value={companyForm.companyAddress}
-                    onChange={(e) =>
-                      setCompanyForm({ ...companyForm, companyAddress: e.target.value })
-                    }
-                    placeholder="Şirket adresini giriniz"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="website">Web Sitesi</Label>
-                  <Input 
-                    id="website" 
-                    value={companyForm.website}
-                    onChange={(e) =>
-                      setCompanyForm({ ...companyForm, website: e.target.value })
-                    }
-                    placeholder="https://www.ornek.com" 
-                  />
+                <div className="text-sm text-gray-500 bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg">
+                  💡 Logo ve diğer şirket bilgileri yakında eklenecek!
                 </div>
                 <LoadingButton 
                   type="submit"
@@ -462,7 +423,7 @@ export default function SettingsPage() {
                   </p>
                 </div>
                 <Button variant="outline" size="sm">
-                  Yakında
+                  Aktif
                 </Button>
               </div>
               <div className="flex items-center justify-between">

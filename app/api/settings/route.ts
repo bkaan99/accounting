@@ -20,6 +20,7 @@ export async function GET() {
         phone: true,
         address: true,
         company: true,
+        companyLogo: true,
       },
     })
 
@@ -49,7 +50,8 @@ export async function PUT(request: Request) {
       name, 
       phone, 
       address, 
-      company
+      company,
+      companyLogo
     } = await request.json()
 
     const updatedUser = await prisma.user.update({
@@ -59,6 +61,7 @@ export async function PUT(request: Request) {
         phone,
         address,
         company,
+        companyLogo,
       },
       select: {
         id: true,
@@ -67,6 +70,7 @@ export async function PUT(request: Request) {
         phone: true,
         address: true,
         company: true,
+        companyLogo: true,
       },
     })
 

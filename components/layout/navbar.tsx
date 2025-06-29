@@ -4,6 +4,7 @@ import { signOut, useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { Menu, LogOut, User, Building2 } from 'lucide-react'
+import { useState, useEffect } from 'react'
 
 interface NavbarProps {
   onToggleSidebar?: () => void
@@ -11,6 +12,37 @@ interface NavbarProps {
 
 export function Navbar({ onToggleSidebar }: NavbarProps) {
   const { data: session } = useSession()
+  const [companyLogo, setCompanyLogo] = useState<string | null>(null)
+
+  // Logo bilgisini ayrı olarak al
+  useEffect(() => {
+    const fetchLogo = async () => {
+      if (!session?.user?.id) return
+      
+      try {
+        const response = await fetch('/api/settings')
+        if (response.ok) {
+          const data = await response.json()
+          setCompanyLogo(data.companyLogo || null)
+        }
+      } catch (error) {
+        console.error('Logo alınırken hata:', error)
+      }
+    }
+
+    fetchLogo()
+
+    // Logo güncelleme eventini dinle
+    const handleLogoUpdate = () => {
+      fetchLogo()
+    }
+
+    window.addEventListener('logoUpdated', handleLogoUpdate)
+    
+    return () => {
+      window.removeEventListener('logoUpdated', handleLogoUpdate)
+    }
+  }, [session?.user?.id])
 
   const handleSignOut = async () => {
     await signOut({
@@ -33,9 +65,9 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-lg shadow-lg overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-              {session?.user?.companyLogo ? (
+              {companyLogo ? (
                 <img 
-                  src={session.user.companyLogo} 
+                  src={companyLogo} 
                   alt="Şirket Logosu" 
                   className="w-full h-full object-contain"
                 />

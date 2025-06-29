@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Settings, User, Building2 } from 'lucide-react'
+import { Settings, User, Building2, Upload, X } from 'lucide-react'
 import { toast } from '@/components/ui/toast'
 import { LoadingButton } from '@/components/ui/loading'
 
@@ -19,6 +19,7 @@ interface UserSettings {
   phone?: string
   address?: string
   company?: string
+  companyLogo?: string
 }
 
 export default function SettingsPage() {
@@ -29,6 +30,7 @@ export default function SettingsPage() {
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false)
   const [isUpdatingCompany, setIsUpdatingCompany] = useState(false)
   const [isChangingPassword, setIsChangingPassword] = useState(false)
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
 
   const [profileForm, setProfileForm] = useState({
     name: '',
@@ -38,6 +40,7 @@ export default function SettingsPage() {
 
   const [companyForm, setCompanyForm] = useState({
     company: '',
+    companyLogo: '',
   })
 
   const [passwordForm, setPasswordForm] = useState({
@@ -73,7 +76,9 @@ export default function SettingsPage() {
         })
         setCompanyForm({
           company: data.company || '',
+          companyLogo: data.companyLogo || '',
         })
+        setLogoPreview(data.companyLogo || null)
       } else {
         const errorData = await response.json()
         console.error('API Hatası:', errorData)
@@ -130,6 +135,69 @@ export default function SettingsPage() {
     }
   }
 
+  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Dosya boyutu kontrolü (2MB max)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Logo dosyası 2MB\'dan küçük olmalıdır')
+      return
+    }
+
+    // Dosya tipi kontrolü
+    if (!file.type.startsWith('image/')) {
+      toast.error('Sadece resim dosyaları kabul edilir')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const img = new Image()
+      img.onload = () => {
+        // Canvas oluştur ve resmi sıkıştır
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+        
+        // Maksimum boyutlar
+        const maxWidth = 400
+        const maxHeight = 400
+        
+        let { width, height } = img
+        
+        // Orantılı küçültme
+        if (width > height) {
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width
+            width = maxWidth
+          }
+        } else {
+          if (height > maxHeight) {
+            width = (width * maxHeight) / height
+            height = maxHeight
+          }
+        }
+        
+        canvas.width = width
+        canvas.height = height
+        
+        // Resmi çiz ve sıkıştır
+        ctx?.drawImage(img, 0, 0, width, height)
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8) // %80 kalite
+        
+        setLogoPreview(compressedBase64)
+        setCompanyForm({ ...companyForm, companyLogo: compressedBase64 })
+      }
+      img.src = e.target?.result as string
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleLogoRemove = () => {
+    setLogoPreview(null)
+    setCompanyForm({ ...companyForm, companyLogo: '' })
+  }
+
   const handleCompanySubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsUpdatingCompany(true)
@@ -148,8 +216,12 @@ export default function SettingsPage() {
       if (response.ok) {
         const updatedData = await response.json()
         setUserSettings(updatedData)
-        // Session'ı güncelleyerek navbar'daki şirket adını yenile
+        // Session'ı güncelleyerek navbar'daki şirket adını ve logoyu yenile
         await update()
+        
+        // Navbar'ı logo güncellemesi için bilgilendir
+        window.dispatchEvent(new CustomEvent('logoUpdated'))
+        
         toast.success_update(loadingToastId, 'Şirket bilgileri başarıyla güncellendi!')
       } else {
         const errorData = await response.json()
@@ -328,9 +400,56 @@ export default function SettingsPage() {
                     placeholder="Şirket adınız"
                   />
                 </div>
-                <div className="text-sm text-gray-500 bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg">
-                  💡 Logo ve diğer şirket bilgileri yakında eklenecek!
+
+                {/* Logo Yükleme */}
+                <div className="space-y-2">
+                  <Label>Şirket Logosu</Label>
+                  <div className="flex items-center space-x-4">
+                    {logoPreview ? (
+                      <div className="relative group">
+                        <div className="w-16 h-16 rounded-lg border-2 border-gray-200 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-800 flex items-center justify-center">
+                          <img 
+                            src={logoPreview} 
+                            alt="Logo önizleme" 
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleLogoRemove}
+                          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-sm hover:bg-red-600 transition-colors"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="w-16 h-16 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center bg-gray-50 dark:bg-gray-800">
+                        <Building2 className="h-8 w-8 text-gray-400" />
+                      </div>
+                    )}
+                    
+                    <div className="flex-1">
+                      <input
+                        type="file"
+                        id="logo-upload"
+                        accept="image/*"
+                        onChange={handleLogoUpload}
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="logo-upload"
+                        className="cursor-pointer inline-flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <Upload className="h-4 w-4" />
+                        <span>Logo Yükle</span>
+                      </label>
+                      <p className="text-xs text-gray-500 mt-1">
+                        PNG, JPG veya SVG. Maksimum 2MB.
+                      </p>
+                    </div>
+                  </div>
                 </div>
+
                 <LoadingButton 
                   type="submit"
                   className="w-full"

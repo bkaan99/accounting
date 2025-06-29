@@ -160,7 +160,7 @@ export default function AdminUsersPage() {
     setIsDialogOpen(true)
   }
 
-  const handleDelete = async (userId: string) => {
+  const handleDelete = async (userId: string): Promise<boolean> => {
     setIsDeletingId(userId)
     const loadingToastId = toast.loading('Kullanıcı siliniyor...')
     
@@ -172,13 +172,16 @@ export default function AdminUsersPage() {
       if (response.ok) {
         await fetchUsers()
         toast.success_update(loadingToastId, 'Kullanıcı başarıyla silindi!')
+        return true // Başarılı silme - dialog kapatılacak
       } else {
         const errorData = await response.json()
         toast.error_update(loadingToastId, errorData.error || 'Silme işlemi başarısız')
+        return false // Hata durumu - dialog açık kalacak
       }
     } catch (error) {
       console.error('Kullanıcı silinirken hata:', error)
       toast.error_update(loadingToastId, 'Bağlantı hatası oluştu')
+      return false // Hata durumu - dialog açık kalacak
     } finally {
       setIsDeletingId(null)
     }

@@ -124,7 +124,7 @@ export default function InvoiceDetailPage() {
     }
   }
 
-  const deleteInvoice = async () => {
+  const deleteInvoice = async (): Promise<boolean> => {
     setIsDeleting(true)
     const loadingToastId = toast.loading('Fatura siliniyor...')
     
@@ -136,13 +136,16 @@ export default function InvoiceDetailPage() {
       if (response.ok) {
         toast.success_update(loadingToastId, 'Fatura başarıyla silindi!')
         router.push('/invoices')
+        return true // Başarılı silme - dialog kapatılacak
       } else {
         const errorData = await response.json()
         toast.error_update(loadingToastId, errorData.error || 'Fatura silinirken hata oluştu')
+        return false // Hata durumu - dialog açık kalacak
       }
     } catch (error) {
       console.error('Error deleting invoice:', error)
       toast.error_update(loadingToastId, 'Bağlantı hatası oluştu')
+      return false // Hata durumu - dialog açık kalacak
     } finally {
       setIsDeleting(false)
     }

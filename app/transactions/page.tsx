@@ -287,7 +287,10 @@ export default function TransactionsPage() {
                         </span>
                       </TableCell>
                       <TableCell className="text-right">
-                        <TransactionActions transactionId={transaction.id} />
+                        <TransactionActions 
+                          transactionId={transaction.id} 
+                          onDelete={fetchTransactions}
+                        />
                       </TableCell>
                     </TableRow>
                   ))}

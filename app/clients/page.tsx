@@ -137,7 +137,7 @@ export default function ClientsPage() {
     setIsDialogOpen(true)
   }
 
-  const handleDelete = async (clientId: string) => {
+  const handleDelete = async (clientId: string): Promise<boolean> => {
     setIsDeletingId(clientId)
     const loadingToastId = toast.loading('Müşteri siliniyor...')
     
@@ -149,13 +149,16 @@ export default function ClientsPage() {
       if (response.ok) {
         await fetchClients()
         toast.success_update(loadingToastId, 'Müşteri başarıyla silindi!')
+        return true // Başarılı silme - dialog kapatılacak
       } else {
         const errorData = await response.json()
         toast.error_update(loadingToastId, errorData.error || 'Silme işlemi başarısız')
+        return false // Hata durumu - dialog açık kalacak
       }
     } catch (error) {
       console.error('Müşteri silinirken hata:', error)
       toast.error_update(loadingToastId, 'Bağlantı hatası oluştu')
+      return false // Hata durumu - dialog açık kalacak
     } finally {
       setIsDeletingId(null)
     }

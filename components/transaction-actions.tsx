@@ -10,13 +10,14 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 interface TransactionActionsProps {
   transactionId: string
+  onDelete?: () => void | Promise<void>
 }
 
-export function TransactionActions({ transactionId }: TransactionActionsProps) {
+export function TransactionActions({ transactionId, onDelete }: TransactionActionsProps) {
   const router = useRouter()
   const [isDeleting, setIsDeleting] = useState(false)
 
-  const handleDelete = async () => {
+  const handleDelete = async (): Promise<boolean> => {
     setIsDeleting(true)
     const loadingToastId = toast.loading('İşlem siliniyor...')
     
@@ -27,14 +28,25 @@ export function TransactionActions({ transactionId }: TransactionActionsProps) {
 
       if (response.ok) {
         toast.success_update(loadingToastId, 'İşlem başarıyla silindi!')
-        router.refresh() // Sayfayı yenile
+        
+        // Parent component'ten gelen onDelete callback'i çağır
+        if (onDelete) {
+          await onDelete()
+        } else {
+          // Fallback olarak router refresh
+          router.refresh()
+        }
+        
+        return true // Başarılı silme - dialog kapatılacak
       } else {
         const errorData = await response.json()
         toast.error_update(loadingToastId, errorData.error || 'İşlem silinirken hata oluştu')
+        return false // Hata durumu - dialog açık kalacak
       }
     } catch (error) {
       console.error('Error deleting transaction:', error)
       toast.error_update(loadingToastId, 'Bağlantı hatası oluştu')
+      return false // Hata durumu - dialog açık kalacak
     } finally {
       setIsDeleting(false)
     }

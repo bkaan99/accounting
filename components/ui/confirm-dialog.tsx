@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -17,7 +18,7 @@ interface ConfirmDialogProps {
   description: string
   confirmText?: string
   cancelText?: string
-  onConfirm: () => void | Promise<void>
+  onConfirm: () => void | Promise<void> | boolean | Promise<boolean>
   isLoading?: boolean
   variant?: 'default' | 'destructive'
 }
@@ -32,12 +33,23 @@ export function ConfirmDialog({
   isLoading = false,
   variant = 'default'
 }: ConfirmDialogProps) {
+  const [open, setOpen] = useState(false)
+
   const handleConfirm = async () => {
-    await onConfirm()
+    try {
+      const result = await onConfirm()
+      // Eğer onConfirm false return ederse dialog'ı açık tut
+      if (result !== false) {
+        setOpen(false)
+      }
+    } catch (error) {
+      // Hata durumunda dialog'ı açık tut
+      console.error('Confirm action failed:', error)
+    }
   }
 
   return (
-    <AlertDialog>
+    <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
         {children}
       </AlertDialogTrigger>

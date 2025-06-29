@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Edit3, Trash2 } from 'lucide-react'
 import Link from 'next/link'
+import { toast } from '@/components/ui/toast'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 interface TransactionActionsProps {
   transactionId: string
@@ -15,24 +17,24 @@ export function TransactionActions({ transactionId }: TransactionActionsProps) {
   const [isDeleting, setIsDeleting] = useState(false)
 
   const handleDelete = async () => {
-    if (!confirm('Bu işlemi silmek istediğinizden emin misiniz?')) {
-      return
-    }
-
     setIsDeleting(true)
+    const loadingToastId = toast.loading('İşlem siliniyor...')
+    
     try {
       const response = await fetch(`/api/transactions/${transactionId}`, {
         method: 'DELETE',
       })
 
       if (response.ok) {
+        toast.success_update(loadingToastId, 'İşlem başarıyla silindi!')
         router.refresh() // Sayfayı yenile
       } else {
-        alert('İşlem silinirken hata oluştu')
+        const errorData = await response.json()
+        toast.error_update(loadingToastId, errorData.error || 'İşlem silinirken hata oluştu')
       }
     } catch (error) {
       console.error('Error deleting transaction:', error)
-      alert('İşlem silinirken hata oluştu')
+      toast.error_update(loadingToastId, 'Bağlantı hatası oluştu')
     } finally {
       setIsDeleting(false)
     }
@@ -45,16 +47,25 @@ export function TransactionActions({ transactionId }: TransactionActionsProps) {
           <Edit3 className="h-4 w-4" />
         </Button>
       </Link>
-      <Button
-        variant="outline"
-        size="sm"
-        title="Sil"
-        onClick={handleDelete}
-        disabled={isDeleting}
-        className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+      <ConfirmDialog
+        title="İşlem Sil"
+        description="Bu işlemi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz."
+        confirmText="Sil"
+        cancelText="İptal"
+        onConfirm={handleDelete}
+        isLoading={isDeleting}
+        variant="destructive"
       >
-        <Trash2 className="h-4 w-4" />
-      </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          title="Sil"
+          disabled={isDeleting}
+          className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </ConfirmDialog>
     </div>
   )
 }

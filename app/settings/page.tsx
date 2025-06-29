@@ -1,18 +1,243 @@
-import { getServerSession } from 'next-auth'
-import { redirect } from 'next/navigation'
-import { authOptions } from '@/lib/auth'
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Settings, User, Building2 } from 'lucide-react'
+import { toast } from '@/components/ui/toast'
+import { LoadingButton } from '@/components/ui/loading'
 
-export default async function SettingsPage() {
-  const session = await getServerSession(authOptions)
+interface UserSettings {
+  id: string
+  name?: string
+  email: string
+  phone?: string
+  address?: string
+  company?: string
+  taxId?: string
+  companyAddress?: string
+  website?: string
+}
 
-  if (!session?.user?.id) {
-    redirect('/login')
+export default function SettingsPage() {
+  const { data: session, status, update } = useSession()
+  const router = useRouter()
+  const [userSettings, setUserSettings] = useState<UserSettings | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false)
+  const [isUpdatingCompany, setIsUpdatingCompany] = useState(false)
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
+
+  const [profileForm, setProfileForm] = useState({
+    name: '',
+    phone: '',
+    address: '',
+  })
+
+  const [companyForm, setCompanyForm] = useState({
+    company: '',
+    taxId: '',
+    companyAddress: '',
+    website: '',
+  })
+
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  })
+
+  // Yetki kontrolü
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login')
+    }
+  }, [status, router])
+
+  const fetchUserSettings = async () => {
+    try {
+      const response = await fetch('/api/settings')
+      
+      if (response.status === 401) {
+        toast.error('Oturum süresi dolmuş. Lütfen tekrar giriş yapın.')
+        router.push('/login')
+        return
+      }
+      
+      if (response.ok) {
+        const data = await response.json()
+        setUserSettings(data)
+        setProfileForm({
+          name: data.name || '',
+          phone: data.phone || '',
+          address: data.address || '',
+        })
+        setCompanyForm({
+          company: data.company || '',
+          taxId: data.taxId || '',
+          companyAddress: data.companyAddress || '',
+          website: data.website || '',
+        })
+      } else {
+        const errorData = await response.json()
+        console.error('API Hatası:', errorData)
+        toast.error(errorData.error || 'Ayarlar yüklenirken hata oluştu')
+      }
+    } catch (error) {
+      console.error('Ayarlar yüklenirken hata:', error)
+      toast.error('Bağlantı hatası oluştu')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user?.id) {
+      console.log('Session mevcut, ayarları yüklüyorum...', session.user)
+      fetchUserSettings()
+    } else if (status === 'authenticated') {
+      console.log('Session authenticated ama user.id yok:', session)
+      toast.error('Kullanıcı bilgileri eksik')
+    }
+  }, [status, session])
+
+  const handleProfileSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsUpdatingProfile(true)
+    
+    const loadingToastId = toast.loading('Profil güncelleniyor...')
+    
+    try {
+      const response = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(profileForm),
+      })
+
+      if (response.ok) {
+        const updatedData = await response.json()
+        setUserSettings(updatedData)
+        // Session'ı güncelleyerek navbar'daki kullanıcı bilgilerini yenile
+        await update()
+        toast.success_update(loadingToastId, 'Profil başarıyla güncellendi!')
+      } else {
+        const errorData = await response.json()
+        toast.error_update(loadingToastId, errorData.error || 'Güncelleme başarısız')
+      }
+    } catch (error) {
+      console.error('Profil güncellenirken hata:', error)
+      toast.error_update(loadingToastId, 'Bağlantı hatası oluştu')
+    } finally {
+      setIsUpdatingProfile(false)
+    }
+  }
+
+  const handleCompanySubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsUpdatingCompany(true)
+    
+    const loadingToastId = toast.loading('Şirket bilgileri güncelleniyor...')
+    
+    try {
+      const response = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(companyForm),
+      })
+
+      if (response.ok) {
+        const updatedData = await response.json()
+        setUserSettings(updatedData)
+        // Session'ı güncelleyerek navbar'daki şirket adını yenile
+        await update()
+        toast.success_update(loadingToastId, 'Şirket bilgileri başarıyla güncellendi!')
+      } else {
+        const errorData = await response.json()
+        toast.error_update(loadingToastId, errorData.error || 'Güncelleme başarısız')
+      }
+    } catch (error) {
+      console.error('Şirket bilgileri güncellenirken hata:', error)
+      toast.error_update(loadingToastId, 'Bağlantı hatası oluştu')
+    } finally {
+      setIsUpdatingCompany(false)
+    }
+  }
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast.error('Yeni şifreler eşleşmiyor')
+      return
+    }
+
+    if (passwordForm.newPassword.length < 6) {
+      toast.error('Yeni şifre en az 6 karakter olmalıdır')
+      return
+    }
+
+    setIsChangingPassword(true)
+    
+    const loadingToastId = toast.loading('Şifre değiştiriliyor...')
+    
+    try {
+      const response = await fetch('/api/settings/password', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          currentPassword: passwordForm.currentPassword,
+          newPassword: passwordForm.newPassword,
+        }),
+      })
+
+      if (response.ok) {
+        setPasswordForm({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: '',
+        })
+        toast.success_update(loadingToastId, 'Şifre başarıyla değiştirildi!')
+      } else {
+        const errorData = await response.json()
+        toast.error_update(loadingToastId, errorData.error || 'Şifre değiştirme başarısız')
+      }
+    } catch (error) {
+      console.error('Şifre değiştirilirken hata:', error)
+      toast.error_update(loadingToastId, 'Bağlantı hatası oluştu')
+    } finally {
+      setIsChangingPassword(false)
+    }
+  }
+
+  if (status === 'loading' || isLoading) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-lg">Yükleniyor...</div>
+        </div>
+      </MainLayout>
+    )
+  }
+
+  if (!userSettings) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-lg">Ayarlar yüklenemedi</div>
+        </div>
+      </MainLayout>
+    )
   }
 
   return (
@@ -32,36 +257,62 @@ export default async function SettingsPage() {
                 <span>Kullanıcı Bilgileri</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <CardContent>
+              <form onSubmit={handleProfileSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Ad Soyad</Label>
+                    <Input
+                      id="name"
+                      value={profileForm.name}
+                      onChange={(e) =>
+                        setProfileForm({ ...profileForm, name: e.target.value })
+                      }
+                      placeholder="Adınızı giriniz"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">E-posta</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={userSettings.email}
+                      placeholder="E-posta adresiniz"
+                      disabled
+                    />
+                  </div>
+                </div>
                 <div className="space-y-2">
-                  <Label htmlFor="name">Ad Soyad</Label>
-                  <Input
-                    id="name"
-                    defaultValue={session.user.name || ''}
-                    placeholder="Adınızı giriniz"
+                  <Label htmlFor="phone">Telefon</Label>
+                  <Input 
+                    id="phone" 
+                    value={profileForm.phone}
+                    onChange={(e) =>
+                      setProfileForm({ ...profileForm, phone: e.target.value })
+                    }
+                    placeholder="+90 532 123 45 67" 
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">E-posta</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    defaultValue={session.user.email || ''}
-                    placeholder="E-posta adresiniz"
-                    disabled
+                  <Label htmlFor="address">Adres</Label>
+                  <Input 
+                    id="address" 
+                    value={profileForm.address}
+                    onChange={(e) =>
+                      setProfileForm({ ...profileForm, address: e.target.value })
+                    }
+                    placeholder="Adresinizi giriniz" 
                   />
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Telefon</Label>
-                <Input id="phone" placeholder="+90 532 123 45 67" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="address">Adres</Label>
-                <Input id="address" placeholder="Adresinizi giriniz" />
-              </div>
-              <Button className="w-full">Kullanıcı Bilgilerini Güncelle</Button>
+                <LoadingButton 
+                  type="submit"
+                  className="w-full"
+                  loading={isUpdatingProfile}
+                  loadingText="Güncelleniyor..."
+                >
+                  Kullanıcı Bilgilerini Güncelle
+                </LoadingButton>
+              </form>
             </CardContent>
           </Card>
 
@@ -73,31 +324,61 @@ export default async function SettingsPage() {
                 <span>Şirket Bilgileri</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="company">Şirket Adı</Label>
-                <Input
-                  id="company"
-                  defaultValue={session.user.company || ''}
-                  placeholder="Şirket adınız"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="taxId">Vergi Numarası</Label>
-                <Input id="taxId" placeholder="1234567890" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="companyAddress">Şirket Adresi</Label>
-                <Input
-                  id="companyAddress"
-                  placeholder="Şirket adresini giriniz"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="website">Web Sitesi</Label>
-                <Input id="website" placeholder="https://www.ornek.com" />
-              </div>
-              <Button className="w-full">Şirket Bilgilerini Güncelle</Button>
+            <CardContent>
+              <form onSubmit={handleCompanySubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="company">Şirket Adı</Label>
+                  <Input
+                    id="company"
+                    value={companyForm.company}
+                    onChange={(e) =>
+                      setCompanyForm({ ...companyForm, company: e.target.value })
+                    }
+                    placeholder="Şirket adınız"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="taxId">Vergi Numarası</Label>
+                  <Input 
+                    id="taxId" 
+                    value={companyForm.taxId}
+                    onChange={(e) =>
+                      setCompanyForm({ ...companyForm, taxId: e.target.value })
+                    }
+                    placeholder="1234567890" 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="companyAddress">Şirket Adresi</Label>
+                  <Input
+                    id="companyAddress"
+                    value={companyForm.companyAddress}
+                    onChange={(e) =>
+                      setCompanyForm({ ...companyForm, companyAddress: e.target.value })
+                    }
+                    placeholder="Şirket adresini giriniz"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="website">Web Sitesi</Label>
+                  <Input 
+                    id="website" 
+                    value={companyForm.website}
+                    onChange={(e) =>
+                      setCompanyForm({ ...companyForm, website: e.target.value })
+                    }
+                    placeholder="https://www.ornek.com" 
+                  />
+                </div>
+                <LoadingButton 
+                  type="submit"
+                  className="w-full"
+                  loading={isUpdatingCompany}
+                  loadingText="Güncelleniyor..."
+                >
+                  Şirket Bilgilerini Güncelle
+                </LoadingButton>
+              </form>
             </CardContent>
           </Card>
         </div>
@@ -111,14 +392,19 @@ export default async function SettingsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <form onSubmit={handlePasswordSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="currentPassword">Mevcut Şifre</Label>
                   <Input
                     id="currentPassword"
                     type="password"
+                    value={passwordForm.currentPassword}
+                    onChange={(e) =>
+                      setPasswordForm({ ...passwordForm, currentPassword: e.target.value })
+                    }
                     placeholder="Mevcut şifrenizi giriniz"
+                    required
                   />
                 </div>
                 <div className="space-y-2">
@@ -126,7 +412,12 @@ export default async function SettingsPage() {
                   <Input
                     id="newPassword"
                     type="password"
+                    value={passwordForm.newPassword}
+                    onChange={(e) =>
+                      setPasswordForm({ ...passwordForm, newPassword: e.target.value })
+                    }
                     placeholder="Yeni şifrenizi giriniz"
+                    required
                   />
                 </div>
               </div>
@@ -135,13 +426,24 @@ export default async function SettingsPage() {
                 <Input
                   id="confirmPassword"
                   type="password"
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) =>
+                    setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })
+                  }
                   placeholder="Yeni şifrenizi tekrar giriniz"
+                  required
                 />
               </div>
-              <Button variant="outline" className="w-full md:w-auto">
+              <LoadingButton 
+                type="submit"
+                variant="outline" 
+                className="w-full md:w-auto"
+                loading={isChangingPassword}
+                loadingText="Değiştiriliyor..."
+              >
                 Şifre Değiştir
-              </Button>
-            </div>
+              </LoadingButton>
+            </form>
           </CardContent>
         </Card>
 

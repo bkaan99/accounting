@@ -27,6 +27,8 @@ import {
   Eye,
 } from 'lucide-react'
 import Link from 'next/link'
+import { toast } from '@/components/ui/toast'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 interface InvoiceItem {
   id: string
@@ -67,6 +69,7 @@ export default function InvoiceDetailPage() {
   const [invoice, setInvoice] = useState<Invoice | null>(null)
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -122,18 +125,26 @@ export default function InvoiceDetailPage() {
   }
 
   const deleteInvoice = async () => {
-    if (confirm('Bu faturayı silmek istediğinizden emin misiniz?')) {
-      try {
-        const response = await fetch(`/api/invoices/${params.id}`, {
-          method: 'DELETE',
-        })
+    setIsDeleting(true)
+    const loadingToastId = toast.loading('Fatura siliniyor...')
+    
+    try {
+      const response = await fetch(`/api/invoices/${params.id}`, {
+        method: 'DELETE',
+      })
 
-        if (response.ok) {
-          router.push('/invoices')
-        }
-      } catch (error) {
-        console.error('Error deleting invoice:', error)
+      if (response.ok) {
+        toast.success_update(loadingToastId, 'Fatura başarıyla silindi!')
+        router.push('/invoices')
+      } else {
+        const errorData = await response.json()
+        toast.error_update(loadingToastId, errorData.error || 'Fatura silinirken hata oluştu')
       }
+    } catch (error) {
+      console.error('Error deleting invoice:', error)
+      toast.error_update(loadingToastId, 'Bağlantı hatası oluştu')
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -421,14 +432,24 @@ export default function InvoiceDetailPage() {
                   </Button>
                 </Link>
 
-                <Button
-                  variant="outline"
-                  onClick={deleteInvoice}
-                  className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                <ConfirmDialog
+                  title="Fatura Sil"
+                  description={`"${invoice.number}" numaralı faturayı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`}
+                  confirmText="Sil"
+                  cancelText="İptal"
+                  onConfirm={deleteInvoice}
+                  isLoading={isDeleting}
+                  variant="destructive"
                 >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Sil
-                </Button>
+                  <Button
+                    variant="outline"
+                    disabled={isDeleting}
+                    className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Sil
+                  </Button>
+                </ConfirmDialog>
               </CardContent>
             </Card>
 

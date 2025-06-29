@@ -14,6 +14,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { toast } from '@/components/ui/toast'
+import { LoadingButton } from '@/components/ui/loading'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -27,6 +29,8 @@ export default function LoginPage() {
     setIsLoading(true)
     setError('')
 
+    const loadingToastId = toast.loading('Giriş yapılıyor...')
+
     try {
       const result = await signIn('credentials', {
         email,
@@ -36,11 +40,14 @@ export default function LoginPage() {
 
       if (result?.error) {
         setError('Giriş bilgileri hatalı')
+        toast.error_update(loadingToastId, 'Giriş bilgileri hatalı!')
       } else {
+        toast.success_update(loadingToastId, 'Giriş başarılı! Yönlendiriliyorsunuz...')
         router.push('/dashboard')
       }
     } catch (error) {
       setError('Bir hata oluştu')
+      toast.error_update(loadingToastId, 'Bağlantı hatası oluştu!')
     } finally {
       setIsLoading(false)
     }
@@ -80,9 +87,14 @@ export default function LoginPage() {
             {error && (
               <div className="text-red-500 text-sm text-center">{error}</div>
             )}
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
-            </Button>
+            <LoadingButton 
+              type="submit" 
+              className="w-full" 
+              loading={isLoading}
+              loadingText="Giriş yapılıyor..."
+            >
+              Giriş Yap
+            </LoadingButton>
           </form>
           <div className="mt-4 text-center text-sm">
             Hesabınız yok mu?{' '}

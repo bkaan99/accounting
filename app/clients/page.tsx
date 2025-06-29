@@ -25,6 +25,9 @@ import {
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Plus, Search, Edit, Trash2, Mail, Phone, MapPin } from 'lucide-react'
+import { toast } from '@/components/ui/toast'
+import { LoadingButton, TableSkeleton } from '@/components/ui/loading'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 interface Client {
   id: string
@@ -43,6 +46,8 @@ export default function ClientsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isDeletingId, setIsDeletingId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -61,9 +66,12 @@ export default function ClientsPage() {
       if (response.ok) {
         const data = await response.json()
         setClients(data)
+      } else {
+        toast.error('Müşteriler yüklenirken hata oluştu')
       }
     } catch (error) {
       console.error('Müşteriler yüklenirken hata:', error)
+      toast.error('Bağlantı hatası oluştu')
     } finally {
       setIsLoading(false)
     }
@@ -71,6 +79,12 @@ export default function ClientsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsSubmitting(true)
+    
+    const loadingToastId = toast.loading(
+      editingClient ? 'Müşteri güncelleniyor...' : 'Müşteri kaydediliyor...'
+    )
+    
     try {
       const method = editingClient ? 'PUT' : 'POST'
       const url = editingClient ? `/api/clients/${editingClient.id}` : '/api/clients'
@@ -94,9 +108,20 @@ export default function ClientsPage() {
           address: '',
           taxId: '',
         })
+        
+        toast.success_update(
+          loadingToastId,
+          editingClient ? 'Müşteri başarıyla güncellendi!' : 'Müşteri başarıyla kaydedildi!'
+        )
+      } else {
+        const errorData = await response.json()
+        toast.error_update(loadingToastId, errorData.error || 'Bir hata oluştu')
       }
     } catch (error) {
       console.error('Müşteri kaydedilirken hata:', error)
+      toast.error_update(loadingToastId, 'Bağlantı hatası oluştu')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -113,18 +138,26 @@ export default function ClientsPage() {
   }
 
   const handleDelete = async (clientId: string) => {
-    if (confirm('Bu müşteriyi silmek istediğinizden emin misiniz?')) {
-      try {
-        const response = await fetch(`/api/clients/${clientId}`, {
-          method: 'DELETE',
-        })
+    setIsDeletingId(clientId)
+    const loadingToastId = toast.loading('Müşteri siliniyor...')
+    
+    try {
+      const response = await fetch(`/api/clients/${clientId}`, {
+        method: 'DELETE',
+      })
 
-        if (response.ok) {
-          await fetchClients()
-        }
-      } catch (error) {
-        console.error('Müşteri silinirken hata:', error)
+      if (response.ok) {
+        await fetchClients()
+        toast.success_update(loadingToastId, 'Müşteri başarıyla silindi!')
+      } else {
+        const errorData = await response.json()
+        toast.error_update(loadingToastId, errorData.error || 'Silme işlemi başarısız')
       }
+    } catch (error) {
+      console.error('Müşteri silinirken hata:', error)
+      toast.error_update(loadingToastId, 'Bağlantı hatası oluştu')
+    } finally {
+      setIsDeletingId(null)
     }
   }
 
@@ -228,9 +261,13 @@ export default function ClientsPage() {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button type="submit">
+                  <LoadingButton 
+                    type="submit"
+                    loading={isSubmitting}
+                    loadingText={editingClient ? 'Güncelleniyor...' : 'Kaydediliyor...'}
+                  >
                     {editingClient ? 'Güncelle' : 'Kaydet'}
-                  </Button>
+                  </LoadingButton>
                 </DialogFooter>
               </form>
             </DialogContent>
@@ -253,9 +290,7 @@ export default function ClientsPage() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              </div>
+              <TableSkeleton rows={5} />
             ) : (
               <Table>
                 <TableHeader>
@@ -316,14 +351,24 @@ export default function ClientsPage() {
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDelete(client.id)}
-                              className="text-red-600 hover:text-red-700"
+                            <ConfirmDialog
+                              title="Müşteri Sil"
+                              description={`"${client.name}" isimli müşteriyi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`}
+                              confirmText="Sil"
+                              cancelText="İptal"
+                              onConfirm={() => handleDelete(client.id)}
+                              isLoading={isDeletingId === client.id}
+                              variant="destructive"
                             >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-red-600 hover:text-red-700"
+                                disabled={isDeletingId === client.id}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </ConfirmDialog>
                           </div>
                         </TableCell>
                       </TableRow>

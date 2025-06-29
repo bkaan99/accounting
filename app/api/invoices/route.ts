@@ -42,11 +42,35 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const validatedData = invoiceSchema.parse(body)
 
-    // Generate invoice number
-    const invoiceCount = await prisma.invoice.count({
-      where: { userId: session.user.id }
-    })
-    const invoiceNumber = `INV-${String(invoiceCount + 1).padStart(4, '0')}`
+    // Generate unique invoice number
+    const generateInvoiceNumber = async (): Promise<string> => {
+      const now = new Date()
+      const year = now.getFullYear()
+      const month = String(now.getMonth() + 1).padStart(2, '0')
+      
+      // Get the latest invoice number for this user in this month
+      const latestInvoice = await prisma.invoice.findFirst({
+        where: {
+          userId: session.user.id,
+          number: {
+            startsWith: `INV-${year}${month}`
+          }
+        },
+        orderBy: {
+          number: 'desc'
+        }
+      })
+
+      let nextNumber = 1
+      if (latestInvoice) {
+        const lastNumber = parseInt(latestInvoice.number.split('-')[2] || '0')
+        nextNumber = lastNumber + 1
+      }
+
+      return `INV-${year}${month}-${String(nextNumber).padStart(4, '0')}`
+    }
+
+    const invoiceNumber = await generateInvoiceNumber()
 
     // Calculate total amount
     const totalAmount = validatedData.items.reduce(

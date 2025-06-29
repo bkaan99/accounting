@@ -28,6 +28,14 @@ interface Transaction {
   date: string
   createdAt: string
   updatedAt: string
+  invoiceId?: string
+  invoice?: {
+    id: string
+    number: string
+    clientInfo: {
+      name: string
+    }
+  }
 }
 
 export default function TransactionsPage() {
@@ -218,6 +226,7 @@ export default function TransactionsPage() {
                     <TableHead>Tip</TableHead>
                     <TableHead>Kategori</TableHead>
                     <TableHead>Açıklama</TableHead>
+                    <TableHead>Fatura/Kaynak</TableHead>
                     <TableHead className="text-right">Tutar</TableHead>
                     <TableHead className="text-right">İşlemler</TableHead>
                   </TableRow>
@@ -246,6 +255,25 @@ export default function TransactionsPage() {
                       </TableCell>
                       <TableCell>{transaction.category}</TableCell>
                       <TableCell>{transaction.description}</TableCell>
+                      <TableCell>
+                        {transaction.invoice ? (
+                          <div className="flex flex-col">
+                            <Link 
+                              href={`/invoices/${transaction.invoice.id}`}
+                              className="text-blue-600 hover:text-blue-800 font-medium"
+                            >
+                              {transaction.invoice.number}
+                            </Link>
+                            <span className="text-xs text-gray-500">
+                              {transaction.invoice.clientInfo.name}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-sm">
+                            Manuel İşlem
+                          </span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right">
                         <span
                           className={`font-medium ${

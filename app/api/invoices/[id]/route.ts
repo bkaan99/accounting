@@ -63,43 +63,67 @@ export async function PUT(
         0
       )
 
-      // Önce mevcut invoice item'larını sil
-      await prisma.invoiceItem.deleteMany({
-        where: { invoiceId: params.id }
+      // Get client (tedarikçi) info
+      const client = await prisma.client.findUnique({
+        where: { id: clientId },
+        select: { name: true }
       })
 
-      // Invoice'ı güncelle ve yeni item'ları ekle
-      const invoice = await prisma.invoice.update({
-        where: { 
-          id: params.id,
-          userId: session.user.id,
-        },
-        data: {
-          clientId,
-          issueDate: new Date(issueDate),
-          dueDate: new Date(dueDate),
-          status,
-          notes,
-          totalAmount,
-          updatedAt: new Date(),
-          items: {
-            create: items.map((item: any) => ({
-              description: item.description,
-              quantity: item.quantity,
-              price: item.unitPrice,
-              total: item.quantity * item.unitPrice,
-            }))
+      // Transaction içinde fatura ve ilgili transaction'ı güncelle
+      const invoice = await prisma.$transaction(async (tx) => {
+        // Önce mevcut invoice item'larını sil
+        await tx.invoiceItem.deleteMany({
+          where: { invoiceId: params.id }
+        })
+
+        // Invoice'ı güncelle ve yeni item'ları ekle
+        const updatedInvoice = await tx.invoice.update({
+          where: { 
+            id: params.id,
+            userId: session.user.id,
+          },
+          data: {
+            clientId,
+            issueDate: new Date(issueDate),
+            dueDate: new Date(dueDate),
+            status,
+            notes,
+            totalAmount,
+            updatedAt: new Date(),
+            items: {
+              create: items.map((item: any) => ({
+                description: item.description,
+                quantity: item.quantity,
+                price: item.unitPrice,
+                total: item.quantity * item.unitPrice,
+              }))
+            }
+          },
+          include: {
+            clientInfo: true,
+            items: true,
           }
-        },
-        include: {
-          clientInfo: true,
-          items: true,
-        }
+        })
+
+        // İlgili transaction'ı güncelle
+        await tx.transaction.updateMany({
+          where: { 
+            invoiceId: params.id,
+            userId: session.user.id,
+          },
+          data: {
+            amount: totalAmount,
+            description: `${client?.name || 'Tedarikçi'} - Fatura No: ${updatedInvoice.number}`,
+            date: new Date(issueDate),
+          }
+        })
+
+        return updatedInvoice
       })
 
       return NextResponse.json(invoice)
     } else {
-      // Sadece durum güncellemesi
+      // Sadece durum güncellemesi - transaction'a dokunma
       const { status, notes } = body
 
       const invoice = await prisma.invoice.update({
@@ -140,11 +164,23 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    await prisma.invoice.delete({
-      where: { 
-        id: params.id,
-        userId: session.user.id,
-      }
+    // Transaction içinde fatura ve ilgili transaction'ı sil
+    await prisma.$transaction(async (tx) => {
+      // İlgili transaction'ları sil
+      await tx.transaction.deleteMany({
+        where: { 
+          invoiceId: params.id,
+          userId: session.user.id,
+        }
+      })
+
+      // Faturayı sil
+      await tx.invoice.delete({
+        where: { 
+          id: params.id,
+          userId: session.user.id,
+        }
+      })
     })
 
     return NextResponse.json({ message: 'Invoice deleted successfully' })

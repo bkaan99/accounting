@@ -54,29 +54,54 @@ export async function POST(request: NextRequest) {
       0
     )
 
-    const invoice = await prisma.invoice.create({
-      data: {
-        number: invoiceNumber,
-        userId: session.user.id,
-        clientId: validatedData.clientId,
-        issueDate: new Date(validatedData.issueDate),
-        dueDate: new Date(validatedData.dueDate),
-        totalAmount,
-        status: validatedData.status || 'DRAFT',
-        notes: validatedData.notes,
-        items: {
-          create: validatedData.items.map(item => ({
-            description: item.description,
-            quantity: item.quantity,
-            price: item.unitPrice,
-            total: item.quantity * item.unitPrice,
-          }))
+    // Get client (tedarikçi) info
+    const client = await prisma.client.findUnique({
+      where: { id: validatedData.clientId },
+      select: { name: true }
+    })
+
+    // Create invoice with transaction using transaction (database transaction)
+    const invoice = await prisma.$transaction(async (tx) => {
+      // Create invoice
+      const newInvoice = await tx.invoice.create({
+        data: {
+          number: invoiceNumber,
+          userId: session.user.id,
+          clientId: validatedData.clientId,
+          issueDate: new Date(validatedData.issueDate),
+          dueDate: new Date(validatedData.dueDate),
+          totalAmount,
+          status: validatedData.status || 'DRAFT',
+          notes: validatedData.notes,
+          items: {
+            create: validatedData.items.map(item => ({
+              description: item.description,
+              quantity: item.quantity,
+              price: item.unitPrice,
+              total: item.quantity * item.unitPrice,
+            }))
+          }
+        },
+        include: {
+          clientInfo: true,
+          items: true,
         }
-      },
-      include: {
-        clientInfo: true,
-        items: true,
-      }
+      })
+
+      // Auto-create expense transaction
+      await tx.transaction.create({
+        data: {
+          userId: session.user.id,
+          type: 'EXPENSE',
+          category: 'Tedarikçi Faturası',
+          amount: totalAmount,
+          description: `${client?.name || 'Tedarikçi'} - Fatura No: ${invoiceNumber}`,
+          date: new Date(validatedData.issueDate),
+          invoiceId: newInvoice.id,
+        }
+      })
+
+      return newInvoice
     })
 
     return NextResponse.json(invoice, { status: 201 })

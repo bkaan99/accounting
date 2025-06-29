@@ -102,6 +102,7 @@ model Invoice {
   client User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   clientInfo Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
   items  InvoiceItem[]
+  transactions Transaction[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -129,8 +130,10 @@ model Transaction {
   amount      Float
   description String?
   date        DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invoiceId   String?
+  
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invoice Invoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

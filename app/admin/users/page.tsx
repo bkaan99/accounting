@@ -33,7 +33,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { formatDate } from '@/lib/utils'
-import { UserCog, Users, Building2, Mail, Phone, Edit, Trash2, Plus } from 'lucide-react'
+import { UserCog, Users, Building2, Mail, Phone, Edit, Trash2, Plus, Key } from 'lucide-react'
 import { toast } from '@/components/ui/toast'
 import { LoadingButton, TableSkeleton } from '@/components/ui/loading'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
@@ -158,6 +158,27 @@ export default function AdminUsersPage() {
       role: user.role,
     })
     setIsDialogOpen(true)
+  }
+
+  const handleResetPassword = async (userId: string) => {
+    const loadingToastId = toast.loading('Şifre sıfırlanıyor...')
+    
+    try {
+      const response = await fetch(`/api/users/${userId}/reset-password`, {
+        method: 'POST',
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        toast.success_update(loadingToastId, `Şifre sıfırlandı! Yeni şifre: ${data.newPassword}`)
+      } else {
+        const errorData = await response.json()
+        toast.error_update(loadingToastId, errorData.error || 'Şifre sıfırlama başarısız')
+      }
+    } catch (error) {
+      console.error('Şifre sıfırlanırken hata:', error)
+      toast.error_update(loadingToastId, 'Bağlantı hatası oluştu')
+    }
   }
 
   const handleDelete = async (userId: string): Promise<boolean> => {
@@ -445,6 +466,22 @@ export default function AdminUsersPage() {
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
+                            <ConfirmDialog
+                              title="Şifre Sıfırla"
+                              description={`"${user.name}" isimli kullanıcının şifresini sıfırlamak istediğinizden emin misiniz? Yeni şifre otomatik oluşturulacak ve gösterilecektir.`}
+                              confirmText="Sıfırla"
+                              cancelText="İptal"
+                              onConfirm={() => handleResetPassword(user.id)}
+                            >
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-blue-600 hover:text-blue-700"
+                                disabled={isDeletingId === user.id}
+                              >
+                                <Key className="h-4 w-4" />
+                              </Button>
+                            </ConfirmDialog>
                             <ConfirmDialog
                               title="Kullanıcı Sil"
                               description={`"${user.name}" isimli kullanıcıyı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.${

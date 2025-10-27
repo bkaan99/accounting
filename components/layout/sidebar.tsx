@@ -92,6 +92,28 @@ const getUserMenuItems = (userRole?: string) => {
     )
   }
 
+  // Admin (şirket sahibi) için ek menüler
+  if (userRole === 'ADMIN') {
+    baseItems.splice(
+      -1,
+      0,
+      ...[
+        {
+          title: 'Çalışan Yönetimi',
+          href: '/admin/employees',
+          icon: UserCog,
+          gradient: 'from-green-500 to-emerald-500',
+        },
+        {
+          title: 'Şirket İstatistikleri',
+          href: '/admin/company-stats',
+          icon: BarChart3,
+          gradient: 'from-blue-500 to-indigo-500',
+        },
+      ]
+    )
+  }
+
   return baseItems
 }
 

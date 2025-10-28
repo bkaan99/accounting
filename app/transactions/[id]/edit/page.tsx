@@ -1,15 +1,33 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter, useParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import { useParams, useRouter } from 'next/navigation'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { ArrowLeft, Save, TrendingUp, TrendingDown } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ArrowLeft, Save, TrendingUp, TrendingDown, Wallet, CreditCard, Building2 } from 'lucide-react'
 import Link from 'next/link'
+
+interface TransactionForm {
+  type: 'INCOME' | 'EXPENSE' | ''
+  category: string
+  amount: string
+  description: string
+  date: string
+  cashAccountId: string
+  isPaid: boolean
+}
+
+interface CashAccount {
+  id: string
+  name: string
+  type: 'CASH' | 'CREDIT_CARD' | 'BANK_ACCOUNT'
+  balance: number
+}
 
 interface Transaction {
   id: string
@@ -18,14 +36,13 @@ interface Transaction {
   amount: number
   description?: string
   date: string
-}
-
-interface TransactionForm {
-  type: 'INCOME' | 'EXPENSE' | ''
-  category: string
-  amount: string
-  description: string
-  date: string
+  cashAccountId?: string
+  isPaid: boolean
+  cashAccount?: {
+    id: string
+    name: string
+    type: 'CASH' | 'CREDIT_CARD' | 'BANK_ACCOUNT'
+  }
 }
 
 // Predefined categories
@@ -59,30 +76,29 @@ const EXPENSE_CATEGORIES = [
 
 export default function EditTransactionPage() {
   const { data: session, status } = useSession()
-  const router = useRouter()
   const params = useParams()
+  const router = useRouter()
+  const [loading, setLoading] = useState(false)
   const [transaction, setTransaction] = useState<Transaction | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
+  const [cashAccounts, setCashAccounts] = useState<CashAccount[]>([])
   const [form, setForm] = useState<TransactionForm>({
     type: '',
     category: '',
     amount: '',
     description: '',
-    date: '',
+    date: new Date().toISOString().split('T')[0],
+    cashAccountId: '',
+    isPaid: false,
   })
 
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login')
-    }
-  }, [status, router])
-
-  useEffect(() => {
-    if (params.id) {
+    } else if (status === 'authenticated') {
       fetchTransaction()
+      fetchCashAccounts()
     }
-  }, [params.id])
+  }, [status, params.id])
 
   const fetchTransaction = async () => {
     try {
@@ -90,22 +106,32 @@ export default function EditTransactionPage() {
       if (response.ok) {
         const data = await response.json()
         setTransaction(data)
-
-        // Form'u mevcut verilerle doldur
         setForm({
           type: data.type,
           category: data.category,
           amount: data.amount.toString(),
           description: data.description || '',
-          date: data.date.split('T')[0],
+          date: new Date(data.date).toISOString().split('T')[0],
+          cashAccountId: data.cashAccountId || '',
+          isPaid: data.isPaid,
         })
       } else if (response.status === 404) {
         router.push('/transactions')
       }
     } catch (error) {
       console.error('Error fetching transaction:', error)
-    } finally {
-      setLoading(false)
+    }
+  }
+
+  const fetchCashAccounts = async () => {
+    try {
+      const response = await fetch('/api/cash-accounts')
+      if (response.ok) {
+        const data = await response.json()
+        setCashAccounts(data.filter((account: CashAccount) => account.isActive))
+      }
+    } catch (error) {
+      console.error('Error fetching cash accounts:', error)
     }
   }
 
@@ -123,7 +149,7 @@ export default function EditTransactionPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setSaving(true)
+    setLoading(true)
 
     try {
       const response = await fetch(`/api/transactions/${params.id}`, {
@@ -137,6 +163,8 @@ export default function EditTransactionPage() {
           amount: parseFloat(form.amount),
           description: form.description,
           date: form.date,
+          cashAccountId: form.cashAccountId && form.cashAccountId !== 'none' ? form.cashAccountId : null,
+          isPaid: form.isPaid,
         }),
       })
 
@@ -150,32 +178,15 @@ export default function EditTransactionPage() {
       console.error('Error updating transaction:', error)
       alert('İşlem güncellenirken hata oluştu')
     } finally {
-      setSaving(false)
+      setLoading(false)
     }
   }
 
-  if (status === 'loading' || loading) {
+  if (status === 'loading' || !transaction) {
     return (
       <MainLayout>
-        <div className="flex items-center justify-center min-h-screen">
+        <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-lg">Yükleniyor...</div>
-        </div>
-      </MainLayout>
-    )
-  }
-
-  if (!transaction) {
-    return (
-      <MainLayout>
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
-              İşlem bulunamadı
-            </h2>
-            <Link href="/transactions">
-              <Button>İşlemlere Dön</Button>
-            </Link>
-          </div>
         </div>
       </MainLayout>
     )
@@ -277,80 +288,147 @@ export default function EditTransactionPage() {
           </Card>
 
           {/* İşlem Detayları */}
-          <Card>
-            <CardHeader>
-              <CardTitle>İşlem Detayları</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="category">Kategori</Label>
-                  <select
-                    id="category"
-                    className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
-                    value={form.category}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, category: e.target.value }))
-                    }
-                    required
-                  >
-                    <option value="">Kategori seçiniz...</option>
-                    {getCategories().map((category) => (
-                      <option key={category} value={category}>
-                        {category}
-                      </option>
-                    ))}
-                  </select>
+          {form.type && (
+            <Card>
+              <CardHeader>
+                <CardTitle>İşlem Detayları</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="category">Kategori</Label>
+                    <select
+                      id="category"
+                      className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+                      value={form.category}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          category: e.target.value,
+                        }))
+                      }
+                      required
+                    >
+                      <option value="">Kategori seçiniz...</option>
+                      {getCategories().map((category) => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="amount">Tutar (₺)</Label>
+                    <Input
+                      id="amount"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={form.amount}
+                      onChange={(e) =>
+                        setForm((prev) => ({ ...prev, amount: e.target.value }))
+                      }
+                      placeholder="0.00"
+                      required
+                    />
+                  </div>
                 </div>
 
                 <div>
-                  <Label htmlFor="amount">Tutar (₺)</Label>
+                  <Label htmlFor="date">Tarih</Label>
                   <Input
-                    id="amount"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={form.amount}
+                    id="date"
+                    type="date"
+                    value={form.date}
                     onChange={(e) =>
-                      setForm((prev) => ({ ...prev, amount: e.target.value }))
+                      setForm((prev) => ({ ...prev, date: e.target.value }))
                     }
-                    placeholder="0.00"
                     required
                   />
                 </div>
-              </div>
 
-              <div>
-                <Label htmlFor="date">Tarih</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={form.date}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, date: e.target.value }))
-                  }
-                  required
-                />
-              </div>
+                <div>
+                  <Label htmlFor="description">Açıklama</Label>
+                  <textarea
+                    id="description"
+                    className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+                    rows={3}
+                    value={form.description}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
+                    placeholder="İşlem açıklaması (opsiyonel)"
+                  />
+                </div>
 
-              <div>
-                <Label htmlFor="description">Açıklama</Label>
-                <textarea
-                  id="description"
-                  className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
-                  rows={3}
-                  value={form.description}
-                  onChange={(e) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      description: e.target.value,
-                    }))
-                  }
-                  placeholder="İşlem açıklaması (opsiyonel)"
-                />
-              </div>
-            </CardContent>
-          </Card>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="cashAccount">Kasa Seçimi</Label>
+                    <Select
+                      value={form.cashAccountId}
+                      onValueChange={(value) =>
+                        setForm((prev) => ({ ...prev, cashAccountId: value }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Kasa seçiniz (opsiyonel)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-gray-500">Kasa seçmeyin</span>
+                          </div>
+                        </SelectItem>
+                        {cashAccounts.map((account) => (
+                          <SelectItem key={account.id} value={account.id}>
+                            <div className="flex items-center space-x-2">
+                              {account.type === 'CASH' && <Wallet className="h-4 w-4 text-green-600" />}
+                              {account.type === 'CREDIT_CARD' && <CreditCard className="h-4 w-4 text-blue-600" />}
+                              {account.type === 'BANK_ACCOUNT' && <Building2 className="h-4 w-4 text-purple-600" />}
+                              <span>{account.name}</span>
+                              <span className="text-sm text-gray-500">
+                                (₺{account.balance.toFixed(2)})
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Kasa seçilirse işlem bu kasaya kaydedilir
+                    </p>
+                  </div>
+
+                  {form.cashAccountId && form.cashAccountId !== 'none' && (
+                    <div>
+                      <Label htmlFor="isPaid">Ödeme Durumu</Label>
+                      <Select
+                        value={form.isPaid ? 'true' : 'false'}
+                        onValueChange={(value) =>
+                          setForm((prev) => ({ ...prev, isPaid: value === 'true' }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="false">Ödenmedi</SelectItem>
+                          <SelectItem value="true">Ödendi</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Ödendi seçilirse kasa bakiyesi güncellenir
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Özet */}
           {form.type && form.amount && (
@@ -405,6 +483,22 @@ export default function EditTransactionPage() {
                       {new Date(form.date).toLocaleDateString('tr-TR')}
                     </span>
                   </div>
+                  {form.cashAccountId && form.cashAccountId !== 'none' && (
+                    <div className="flex justify-between">
+                      <span className="font-medium">Kasa:</span>
+                      <span>
+                        {cashAccounts.find(a => a.id === form.cashAccountId)?.name || '-'}
+                      </span>
+                    </div>
+                  )}
+                  {form.cashAccountId && form.cashAccountId !== 'none' && (
+                    <div className="flex justify-between">
+                      <span className="font-medium">Ödeme Durumu:</span>
+                      <span className={form.isPaid ? 'text-green-600' : 'text-orange-600'}>
+                        {form.isPaid ? 'Ödendi' : 'Ödenmedi'}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -419,10 +513,10 @@ export default function EditTransactionPage() {
             </Link>
             <Button
               type="submit"
-              disabled={saving || !form.type || !form.category || !form.amount}
+              disabled={loading || !form.type || !form.category || !form.amount}
             >
               <Save className="h-4 w-4 mr-2" />
-              {saving ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}
+              {loading ? 'Güncelleniyor...' : 'Değişiklikleri Kaydet'}
             </Button>
           </div>
         </form>

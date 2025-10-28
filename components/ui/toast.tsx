@@ -79,5 +79,39 @@ export const toast = {
         border: 'none',
       },
     })
+  },
+
+  // Şifre sıfırlama toast'ı (kopyalama özelliği ile)
+  password_reset: (id: string | number, password: string) => {
+    sonnerToast.success(
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <div className="font-medium">Şifre sıfırlandı!</div>
+          <div className="text-sm opacity-90">Yeni şifre: <span className="font-mono bg-black/20 px-1 rounded">{password}</span></div>
+        </div>
+        <button
+          onClick={() => {
+            navigator.clipboard.writeText(password)
+            sonnerToast.success('Şifre kopyalandı!', { duration: 2000 })
+          }}
+          className="p-1 hover:bg-white/20 rounded transition-colors"
+          title="Şifreyi kopyala"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+            <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+          </svg>
+        </button>
+      </div>,
+      {
+        id,
+        duration: 10000, // Daha uzun süre göster
+        style: {
+          background: '#10b981',
+          color: 'white',
+          border: 'none',
+        },
+      }
+    )
   }
 } 

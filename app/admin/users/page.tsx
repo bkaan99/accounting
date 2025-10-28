@@ -198,7 +198,7 @@ export default function AdminUsersPage() {
 
       if (response.ok) {
         const data = await response.json()
-        toast.success_update(loadingToastId, `Şifre sıfırlandı! Yeni şifre: ${data.newPassword}`)
+        toast.password_reset(loadingToastId, data.newPassword)
       } else {
         const errorData = await response.json()
         toast.error_update(loadingToastId, errorData.error || 'Şifre sıfırlama başarısız')

@@ -20,7 +20,7 @@ export async function GET() {
     if (session.user.role === 'ADMIN') {
       whereClause = {
         role: 'USER', // Sadece USER rolündekiler
-        company: session.user.company, // Aynı şirketteki çalışanlar
+        companyId: session.user.companyId, // Aynı şirketteki çalışanlar
       }
     }
 
@@ -104,7 +104,8 @@ export async function POST(request: Request) {
         password: hashedPassword,
         phone,
         role: role || 'USER', // Varsayılan USER
-        company: session.user.company || 'Şirket Adı', // Admin'in şirketini ata
+        // @ts-ignore - Prisma client cache sorunu
+        companyId: session.user.companyId, // Admin'in şirketini ata
       },
       select: {
         id: true,

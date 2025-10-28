@@ -24,7 +24,7 @@ import {
   UserCog,
 } from 'lucide-react'
 
-async function getCompanyStats(userId: string, userRole: string, userCompany: string | undefined) {
+async function getCompanyStats(userId: string, userRole: string, userCompanyId: string | undefined) {
   let whereClause = {}
 
   // ADMIN ise sadece kendi şirketindeki verileri getir
@@ -50,7 +50,7 @@ async function getCompanyStats(userId: string, userRole: string, userCompany: st
     // Çalışan sayısı
     prisma.user.count({
       where: userRole === 'ADMIN' 
-        ? { role: 'USER', company: userCompany || '' } // ADMIN için sadece kendi şirketindeki USER'lar
+        ? { role: 'USER', companyId: userCompanyId } // ADMIN için sadece kendi şirketindeki USER'lar
         : { role: { in: ['USER', 'ADMIN'] } } // SUPERADMIN için USER ve ADMIN
     }),
     
@@ -149,7 +149,7 @@ export default async function AdminCompanyStatsPage() {
     redirect('/dashboard')
   }
 
-  const stats = await getCompanyStats(session.user.id, session.user.role, session.user.company)
+  const stats = await getCompanyStats(session.user.id, session.user.role, session.user.companyId)
   const netIncome = stats.totalIncome - stats.totalExpenses
 
   return (

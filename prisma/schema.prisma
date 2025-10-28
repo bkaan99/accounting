@@ -152,13 +152,14 @@ model InvoiceItem {
 
 // Kasa Türleri - Şirketlere bağlı
 model CashAccount {
-  id          String   @id @default(cuid())
-  companyId   String   // Hangi şirkete ait
-  name        String   // Kasa adı (örn: "Nakit Kasa", "Kredi Kartı Kasası")
-  type        String   // CASH, CREDIT_CARD, BANK_ACCOUNT
-  balance     Float    @default(0) // Mevcut bakiye
-  isActive    Boolean  @default(true)
-  description String?
+  id              String   @id @default(cuid())
+  companyId       String   // Hangi şirkete ait
+  name            String   // Kasa adı (örn: "Nakit Kasa", "Kredi Kartı Kasası")
+  type            String   // CASH, CREDIT_CARD, BANK_ACCOUNT
+  initialBalance  Float    @default(0) // Başlangıç bakiyesi
+  balance         Float    @default(0) // Mevcut bakiye
+  isActive        Boolean  @default(true)
+  description     String?
   
   // İlişkiler
   company     Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)

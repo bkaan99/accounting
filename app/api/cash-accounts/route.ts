@@ -128,7 +128,8 @@ export async function POST(request: NextRequest) {
         companyId: session.user.companyId,
         name,
         type,
-        balance: parseFloat(initialBalance),
+        initialBalance: parseFloat(initialBalance),
+        balance: parseFloat(initialBalance), // Başlangıçta ikisi de aynı
         description: description || null,
       },
     })

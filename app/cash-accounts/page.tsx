@@ -21,6 +21,7 @@ interface CashAccount {
   id: string
   name: string
   type: 'CASH' | 'CREDIT_CARD' | 'BANK_ACCOUNT'
+  initialBalance: number
   balance: number
   isActive: boolean
   description?: string

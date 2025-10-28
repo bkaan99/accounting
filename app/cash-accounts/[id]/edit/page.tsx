@@ -18,11 +18,16 @@ interface CashAccount {
   id: string
   name: string
   type: 'CASH' | 'CREDIT_CARD' | 'BANK_ACCOUNT'
+  initialBalance: number
   balance: number
   isActive: boolean
   description?: string
   createdAt: string
   updatedAt: string
+  company?: {
+    id: string
+    name: string
+  }
 }
 
 export default function EditCashAccountPage() {
@@ -168,7 +173,7 @@ export default function EditCashAccountPage() {
               Kasa Düzenle
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
-              {cashAccount.name} kasasını düzenleyin - {session?.user?.company?.name || 'Şirketiniz'}
+              {cashAccount.name} kasasını düzenleyin - {cashAccount.company?.name || 'Şirketiniz'}
             </p>
           </div>
         </div>

@@ -52,7 +52,7 @@ async function getCompanyStats(userId: string, userRole: string, userCompanyId: 
       where: userRole === 'ADMIN' 
         ? { role: 'USER', companyId: userCompanyId } // ADMIN için sadece kendi şirketindeki USER'lar
         : { role: { in: ['USER', 'ADMIN'] } } // SUPERADMIN için USER ve ADMIN
-    }),
+    } as any),
     
     // Müşteri sayısı
     prisma.client.count({
@@ -90,7 +90,7 @@ async function getCompanyStats(userId: string, userRole: string, userCompanyId: 
     // Son eklenen çalışanlar
     prisma.user.findMany({
       where: userRole === 'ADMIN' 
-        ? { role: 'USER', company: userCompany || '' } // ADMIN için sadece kendi şirketindeki USER'lar
+        ? { role: 'USER', companyId: userCompanyId } // ADMIN için sadece kendi şirketindeki USER'lar
         : { role: { in: ['USER', 'ADMIN'] } }, // SUPERADMIN için USER ve ADMIN
       take: 5,
       orderBy: { createdAt: 'desc' },
@@ -100,13 +100,20 @@ async function getCompanyStats(userId: string, userRole: string, userCompanyId: 
         email: true,
         role: true,
         createdAt: true,
+        _count: {
+          select: {
+            invoices: true,
+            transactions: true,
+            clients: true,
+          },
+        },
       },
-    }),
+    } as any),
     
     // En aktif çalışanlar
     prisma.user.findMany({
       where: userRole === 'ADMIN' 
-        ? { role: 'USER', company: userCompany || '' } // ADMIN için sadece kendi şirketindeki USER'lar
+        ? { role: 'USER', companyId: userCompanyId } // ADMIN için sadece kendi şirketindeki USER'lar
         : { role: { in: ['USER', 'ADMIN'] } }, // SUPERADMIN için USER ve ADMIN
       select: {
         id: true,
@@ -122,12 +129,10 @@ async function getCompanyStats(userId: string, userRole: string, userCompanyId: 
         },
       },
       orderBy: {
-        transactions: {
-          _count: 'desc',
-        },
+        createdAt: 'desc',
       },
       take: 5,
-    }),
+    } as any),
   ])
 
   return {
@@ -347,9 +352,9 @@ export default async function AdminCompanyStatsPage() {
                           {employee.name}
                         </div>
                       </TableCell>
-                      <TableCell>{employee._count.clients}</TableCell>
-                      <TableCell>{employee._count.invoices}</TableCell>
-                      <TableCell>{employee._count.transactions}</TableCell>
+                      <TableCell>{(employee as any)._count.clients}</TableCell>
+                      <TableCell>{(employee as any)._count.invoices}</TableCell>
+                      <TableCell>{(employee as any)._count.transactions}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

@@ -121,7 +121,7 @@ export default function NewTransactionPage() {
           amount: parseFloat(form.amount),
           description: form.description,
           date: form.date,
-          cashAccountId: form.cashAccountId || null,
+          cashAccountId: form.cashAccountId && form.cashAccountId !== 'none' ? form.cashAccountId : null,
           isPaid: form.isPaid,
         }),
       })
@@ -336,7 +336,7 @@ export default function NewTransactionPage() {
                         <SelectValue placeholder="Kasa seçiniz (opsiyonel)" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">
+                        <SelectItem value="none">
                           <div className="flex items-center space-x-2">
                             <span className="text-gray-500">Kasa seçmeyin</span>
                           </div>
@@ -361,7 +361,7 @@ export default function NewTransactionPage() {
                     </p>
                   </div>
 
-                  {form.cashAccountId && (
+                  {form.cashAccountId && form.cashAccountId !== 'none' && (
                     <div>
                       <Label htmlFor="isPaid">Ödeme Durumu</Label>
                       <Select
@@ -441,7 +441,7 @@ export default function NewTransactionPage() {
                       {new Date(form.date).toLocaleDateString('tr-TR')}
                     </span>
                   </div>
-                  {form.cashAccountId && (
+                  {form.cashAccountId && form.cashAccountId !== 'none' && (
                     <div className="flex justify-between">
                       <span className="font-medium">Kasa:</span>
                       <span>
@@ -449,7 +449,7 @@ export default function NewTransactionPage() {
                       </span>
                     </div>
                   )}
-                  {form.cashAccountId && (
+                  {form.cashAccountId && form.cashAccountId !== 'none' && (
                     <div className="flex justify-between">
                       <span className="font-medium">Ödeme Durumu:</span>
                       <span className={form.isPaid ? 'text-green-600' : 'text-orange-600'}>

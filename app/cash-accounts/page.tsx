@@ -255,6 +255,7 @@ export default function CashAccountsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Kasa Adı</TableHead>
+                    <TableHead>Şirket</TableHead>
                     <TableHead>Tür</TableHead>
                     <TableHead>Durum</TableHead>
                     <TableHead>Açıklama</TableHead>
@@ -270,6 +271,11 @@ export default function CashAccountsPage() {
                           {getCashAccountIcon(account.type)}
                           <span className="font-medium">{account.name}</span>
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm text-gray-600">
+                          {account.company?.name || 'Bilinmiyor'}
+                        </span>
                       </TableCell>
                       <TableCell>
                         <span className="text-sm text-gray-600">

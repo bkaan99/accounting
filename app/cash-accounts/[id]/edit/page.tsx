@@ -168,7 +168,7 @@ export default function EditCashAccountPage() {
               Kasa Düzenle
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
-              {cashAccount.name} kasasını düzenleyin
+              {cashAccount.name} kasasını düzenleyin - {session?.user?.company?.name || 'Şirketiniz'}
             </p>
           </div>
         </div>

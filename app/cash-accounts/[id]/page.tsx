@@ -186,7 +186,7 @@ export default function CashAccountDetailPage() {
                   {cashAccount.name}
                 </h1>
                 <p className="text-gray-600 dark:text-gray-400">
-                  {getCashAccountTypeLabel(cashAccount.type)}
+                  {getCashAccountTypeLabel(cashAccount.type)} - {cashAccount.company?.name || 'Bilinmiyor'}
                 </p>
               </div>
             </div>

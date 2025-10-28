@@ -38,10 +38,15 @@ interface Transaction {
   date: string
   cashAccountId?: string
   isPaid: boolean
+  invoiceId?: string
   cashAccount?: {
     id: string
     name: string
     type: 'CASH' | 'CREDIT_CARD' | 'BANK_ACCOUNT'
+  }
+  invoice?: {
+    id: string
+    number: string
   }
 }
 
@@ -81,6 +86,7 @@ export default function EditTransactionPage() {
   const [loading, setLoading] = useState(false)
   const [transaction, setTransaction] = useState<Transaction | null>(null)
   const [cashAccounts, setCashAccounts] = useState<CashAccount[]>([])
+  const [isInvoiceTransaction, setIsInvoiceTransaction] = useState(false)
   const [form, setForm] = useState<TransactionForm>({
     type: '',
     category: '',
@@ -106,6 +112,7 @@ export default function EditTransactionPage() {
       if (response.ok) {
         const data = await response.json()
         setTransaction(data)
+        setIsInvoiceTransaction(!!data.invoiceId)
         setForm({
           type: data.type,
           category: data.category,
@@ -158,11 +165,14 @@ export default function EditTransactionPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          type: form.type,
-          category: form.category,
-          amount: parseFloat(form.amount),
-          description: form.description,
-          date: form.date,
+          // Faturaya bağlı işlemler için sadece kasa ve ödeme durumunu güncelle
+          ...(isInvoiceTransaction ? {} : {
+            type: form.type,
+            category: form.category,
+            amount: parseFloat(form.amount),
+            description: form.description,
+            date: form.date,
+          }),
           cashAccountId: form.cashAccountId && form.cashAccountId !== 'none' ? form.cashAccountId : null,
           isPaid: form.isPaid,
         }),
@@ -204,31 +214,40 @@ export default function EditTransactionPage() {
           </Link>
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-              İşlem Düzenle
+              {isInvoiceTransaction ? 'Fatura İşlemi Düzenle' : 'İşlem Düzenle'}
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
-              İşlem bilgilerini güncelleyin
+              {isInvoiceTransaction 
+                ? 'Faturaya bağlı işlem için sadece kasa ve ödeme durumunu güncelleyebilirsiniz'
+                : 'İşlem bilgilerini güncelleyin'
+              }
             </p>
+            {isInvoiceTransaction && transaction?.invoice && (
+              <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
+                Fatura: {transaction.invoice.number}
+              </p>
+            )}
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
-          {/* İşlem Türü */}
-          <Card>
-            <CardHeader>
-              <CardTitle>İşlem Türü</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  type="button"
-                  onClick={() => handleTypeChange('INCOME')}
-                  className={`p-6 border-2 rounded-lg transition-all ${
-                    form.type === 'INCOME'
-                      ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-green-300'
-                  }`}
-                >
+          {/* İşlem Türü - Faturaya bağlı işlemler için devre dışı */}
+          {!isInvoiceTransaction && (
+            <Card>
+              <CardHeader>
+                <CardTitle>İşlem Türü</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    type="button"
+                    onClick={() => handleTypeChange('INCOME')}
+                    className={`p-6 border-2 rounded-lg transition-all ${
+                      form.type === 'INCOME'
+                        ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-green-300'
+                    }`}
+                  >
                   <div className="text-center">
                     <TrendingUp
                       className={`h-8 w-8 mx-auto mb-2 ${
@@ -286,9 +305,10 @@ export default function EditTransactionPage() {
               </div>
             </CardContent>
           </Card>
+          )}
 
-          {/* İşlem Detayları */}
-          {form.type && (
+          {/* İşlem Detayları - Faturaya bağlı işlemler için devre dışı */}
+          {form.type && !isInvoiceTransaction && (
             <Card>
               <CardHeader>
                 <CardTitle>İşlem Detayları</CardTitle>
@@ -368,6 +388,78 @@ export default function EditTransactionPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="cashAccount">Kasa Seçimi</Label>
+                    <Select
+                      value={form.cashAccountId}
+                      onValueChange={(value) =>
+                        setForm((prev) => ({ ...prev, cashAccountId: value }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Kasa seçiniz (opsiyonel)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-gray-500">Kasa seçmeyin</span>
+                          </div>
+                        </SelectItem>
+                        {cashAccounts.map((account) => (
+                          <SelectItem key={account.id} value={account.id}>
+                            <div className="flex items-center space-x-2">
+                              {account.type === 'CASH' && <Wallet className="h-4 w-4 text-green-600" />}
+                              {account.type === 'CREDIT_CARD' && <CreditCard className="h-4 w-4 text-blue-600" />}
+                              {account.type === 'BANK_ACCOUNT' && <Building2 className="h-4 w-4 text-purple-600" />}
+                              <span>{account.name}</span>
+                              <span className="text-sm text-gray-500">
+                                (₺{account.balance.toFixed(2)})
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Kasa seçilirse işlem bu kasaya kaydedilir
+                    </p>
+                  </div>
+
+                  {form.cashAccountId && form.cashAccountId !== 'none' && (
+                    <div>
+                      <Label htmlFor="isPaid">Ödeme Durumu</Label>
+                      <Select
+                        value={form.isPaid ? 'true' : 'false'}
+                        onValueChange={(value) =>
+                          setForm((prev) => ({ ...prev, isPaid: value === 'true' }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="false">Ödenmedi</SelectItem>
+                          <SelectItem value="true">Ödendi</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Ödendi seçilirse kasa bakiyesi güncellenir
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Faturaya bağlı işlemler için sadece kasa ve ödeme durumu */}
+          {isInvoiceTransaction && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Kasa ve Ödeme Durumu</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="cashAccount">Kasa</Label>
                     <Select
                       value={form.cashAccountId}
                       onValueChange={(value) =>

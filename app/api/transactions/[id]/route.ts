@@ -49,28 +49,6 @@ export async function PUT(
     const body = await request.json()
     const { type, category, amount, description, date, cashAccountId, isPaid } = body
 
-    // Validation
-    if (!type || !category || !amount || !date) {
-      return NextResponse.json(
-        { error: 'Tüm gerekli alanları doldurunuz' },
-        { status: 400 }
-      )
-    }
-
-    if (!['INCOME', 'EXPENSE'].includes(type)) {
-      return NextResponse.json(
-        { error: 'Geçersiz işlem türü' },
-        { status: 400 }
-      )
-    }
-
-    if (amount <= 0) {
-      return NextResponse.json(
-        { error: 'Tutar pozitif olmalıdır' },
-        { status: 400 }
-      )
-    }
-
     // Mevcut işlemi getir
     const existingTransaction = await prisma.transaction.findUnique({
       where: { id: params.id },
@@ -79,6 +57,33 @@ export async function PUT(
 
     if (!existingTransaction) {
       return NextResponse.json({ error: 'İşlem bulunamadı' }, { status: 404 })
+    }
+
+    // Faturaya bağlı işlemler için sadece kasa ve ödeme durumu güncellenebilir
+    const isInvoiceTransaction = !!existingTransaction.invoiceId
+
+    // Validation - Faturaya bağlı işlemler için farklı validasyon
+    if (!isInvoiceTransaction) {
+      if (!type || !category || !amount || !date) {
+        return NextResponse.json(
+          { error: 'Tüm gerekli alanları doldurunuz' },
+          { status: 400 }
+        )
+      }
+
+      if (!['INCOME', 'EXPENSE'].includes(type)) {
+        return NextResponse.json(
+          { error: 'Geçersiz işlem türü' },
+          { status: 400 }
+        )
+      }
+
+      if (amount <= 0) {
+        return NextResponse.json(
+          { error: 'Tutar pozitif olmalıdır' },
+          { status: 400 }
+        )
+      }
     }
 
     // Yetki kontrolü
@@ -132,19 +137,25 @@ export async function PUT(
         })
       }
 
-      // İşlemi güncelle
+      // İşlemi güncelle - Faturaya bağlı işlemler için sadece kasa ve ödeme durumu
+      const updateData: any = {
+        cashAccountId: cashAccountId || null,
+        isPaid: isPaid !== undefined ? isPaid : existingTransaction.isPaid,
+        updatedAt: new Date(),
+      }
+
+      // Faturaya bağlı değilse diğer alanları da güncelle
+      if (!isInvoiceTransaction) {
+        updateData.type = type
+        updateData.category = category
+        updateData.amount = parseFloat(amount)
+        updateData.description = description || null
+        updateData.date = new Date(date)
+      }
+
       const updatedTransaction = await tx.transaction.update({
         where: { id: params.id },
-        data: {
-          type,
-          category,
-          amount: parseFloat(amount),
-          description: description || null,
-          date: new Date(date),
-          cashAccountId: cashAccountId || null,
-          isPaid: isPaid !== undefined ? isPaid : existingTransaction.isPaid,
-          updatedAt: new Date(),
-        }
+        data: updateData
       })
 
       // Yeni kasa bakiyesini güncelle (eğer ödenmişse)

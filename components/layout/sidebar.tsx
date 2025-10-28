@@ -28,7 +28,7 @@ const getUserMenuItems = (userRole?: string) => {
       gradient: 'from-blue-500 to-cyan-500',
     },
     {
-      title: 'Müşteriler',
+      title: 'Tedarikçiler',
       href: '/clients',
       icon: Users,
       gradient: 'from-green-500 to-emerald-500',

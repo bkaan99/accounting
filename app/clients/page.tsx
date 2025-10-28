@@ -67,10 +67,10 @@ export default function ClientsPage() {
         const data = await response.json()
         setClients(data)
       } else {
-        toast.error('Müşteriler yüklenirken hata oluştu')
+        toast.error('Tedarikçiler yüklenirken hata oluştu')
       }
     } catch (error) {
-      console.error('Müşteriler yüklenirken hata:', error)
+      console.error('Tedarikçiler yüklenirken hata:', error)
       toast.error('Bağlantı hatası oluştu')
     } finally {
       setIsLoading(false)
@@ -82,7 +82,7 @@ export default function ClientsPage() {
     setIsSubmitting(true)
     
     const loadingToastId = toast.loading(
-      editingClient ? 'Müşteri güncelleniyor...' : 'Müşteri kaydediliyor...'
+      editingClient ? 'Tedarikçi güncelleniyor...' : 'Tedarikçi kaydediliyor...'
     )
     
     try {
@@ -111,14 +111,14 @@ export default function ClientsPage() {
         
         toast.success_update(
           loadingToastId,
-          editingClient ? 'Müşteri başarıyla güncellendi!' : 'Müşteri başarıyla kaydedildi!'
+          editingClient ? 'Tedarikçi başarıyla güncellendi!' : 'Tedarikçi başarıyla kaydedildi!'
         )
       } else {
         const errorData = await response.json()
         toast.error_update(loadingToastId, errorData.error || 'Bir hata oluştu')
       }
     } catch (error) {
-      console.error('Müşteri kaydedilirken hata:', error)
+      console.error('Tedarikçi kaydedilirken hata:', error)
       toast.error_update(loadingToastId, 'Bağlantı hatası oluştu')
     } finally {
       setIsSubmitting(false)
@@ -139,7 +139,7 @@ export default function ClientsPage() {
 
   const handleDelete = async (clientId: string): Promise<boolean> => {
     setIsDeletingId(clientId)
-    const loadingToastId = toast.loading('Müşteri siliniyor...')
+    const loadingToastId = toast.loading('Tedarikçi siliniyor...')
     
     try {
       const response = await fetch(`/api/clients/${clientId}`, {
@@ -148,7 +148,7 @@ export default function ClientsPage() {
 
       if (response.ok) {
         await fetchClients()
-        toast.success_update(loadingToastId, 'Müşteri başarıyla silindi!')
+        toast.success_update(loadingToastId, 'Tedarikçi başarıyla silindi!')
         return true // Başarılı silme - dialog kapatılacak
       } else {
         const errorData = await response.json()
@@ -156,7 +156,7 @@ export default function ClientsPage() {
         return false // Hata durumu - dialog açık kalacak
       }
     } catch (error) {
-      console.error('Müşteri silinirken hata:', error)
+      console.error('Tedarikçi silinirken hata:', error)
       toast.error_update(loadingToastId, 'Bağlantı hatası oluştu')
       return false // Hata durumu - dialog açık kalacak
     } finally {
@@ -174,23 +174,23 @@ export default function ClientsPage() {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Şirket Carileri</h1>
-            <p className="text-gray-600">Şirketinizin müşterilerini (carilerini) yönetin</p>
+            <h1 className="text-3xl font-bold text-gray-900">Tedarikçiler</h1>
+            <p className="text-gray-600">Tedarikçilerinizi yönetin</p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button className="flex items-center space-x-2">
                 <Plus className="h-4 w-4" />
-                <span>Yeni Cari</span>
+                <span>Yeni Tedarikçi</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
                 <DialogTitle>
-                  {editingClient ? 'Cari Düzenle' : 'Yeni Cari'}
+                  {editingClient ? 'Tedarikçi Düzenle' : 'Yeni Tedarikçi'}
                 </DialogTitle>
                 <DialogDescription>
-                  Cari bilgilerini girin ve kaydedin.
+                  Tedarikçi bilgilerini girin ve kaydedin.
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit}>
@@ -283,7 +283,7 @@ export default function ClientsPage() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="Cari ara..."
+                  placeholder="Tedarikçi ara..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -298,7 +298,7 @@ export default function ClientsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Cari Adı</TableHead>
+                    <TableHead>Tedarikçi Adı</TableHead>
                     <TableHead>İletişim</TableHead>
                     <TableHead>Adres</TableHead>
                     <TableHead>Vergi No</TableHead>
@@ -310,8 +310,8 @@ export default function ClientsPage() {
                     <TableRow>
                       <TableCell colSpan={5} className="text-center py-8">
                         {searchTerm
-                          ? 'Arama kriterinize uygun cari bulunamadı'
-                          : 'Henüz cari eklenmemiş'}
+                          ? 'Arama kriterinize uygun tedarikçi bulunamadı'
+                          : 'Henüz tedarikçi eklenmemiş'}
                       </TableCell>
                     </TableRow>
                   ) : (

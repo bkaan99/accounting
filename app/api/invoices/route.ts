@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
           issueDate: new Date(validatedData.issueDate),
           dueDate: new Date(validatedData.dueDate),
           totalAmount,
-          status: validatedData.status || 'DRAFT',
+          status: validatedData.status || 'UNPAID',
           notes: validatedData.notes,
           items: {
             create: validatedData.items.map(item => ({

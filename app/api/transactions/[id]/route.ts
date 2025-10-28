@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { updateInvoiceStatus } from '@/lib/invoice-status'
 
 export async function GET(
   request: NextRequest,
@@ -174,7 +175,25 @@ export async function PUT(
         })
       }
 
+      // Faturaya bağlı işlemse fatura durumunu güncelle
+      if (updatedTransaction.invoiceId) {
+        const invoice = await tx.invoice.findUnique({
+          where: { id: updatedTransaction.invoiceId }
+        })
+        
+        if (invoice) {
+          await updateInvoiceStatus(
+            updatedTransaction.invoiceId,
+            updatedTransaction.isPaid,
+            invoice.dueDate,
+            tx
+          )
+        }
+      }
+
       return updatedTransaction
+    }, {
+      timeout: 10000, // 10 saniye timeout
     })
 
     return NextResponse.json(transaction)

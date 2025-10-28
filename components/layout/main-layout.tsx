@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
 import { Sidebar } from './sidebar'
@@ -13,6 +13,14 @@ interface MainLayoutProps {
 export function MainLayout({ children }: MainLayoutProps) {
   const { data: session, status } = useSession()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+
+  // Sistem başlangıcında gecikmiş faturaları güncelle
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetch('/api/invoices/update-overdue', { method: 'POST' })
+        .catch(error => console.error('Failed to update overdue invoices:', error))
+    }
+  }, [session?.user?.id])
 
   if (status === 'loading') {
     return (

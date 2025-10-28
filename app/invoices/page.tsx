@@ -14,6 +14,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { formatCurrency, formatDate } from '@/lib/utils'
+import { getInvoiceStatusColor, getInvoiceStatusText } from '@/lib/invoice-status'
 import {
   Plus,
   FileText,
@@ -46,7 +47,7 @@ interface Invoice {
   issueDate: string
   dueDate: string
   totalAmount: number
-  status: 'DRAFT' | 'SENT' | 'PAID' | 'OVERDUE'
+  status: 'DRAFT' | 'SENT' | 'UNPAID' | 'PAID' | 'OVERDUE'
   client: Client
   items: InvoiceItem[]
   notes?: string
@@ -200,7 +201,7 @@ export default function InvoicesPage() {
       .reduce((sum, invoice) => sum + invoice.totalAmount, 0)
     const pendingAmount = matchingInvoices
       .filter(
-        (invoice) => invoice.status === 'SENT' || invoice.status === 'OVERDUE'
+        (invoice) => invoice.status === 'SENT' || invoice.status === 'UNPAID' || invoice.status === 'OVERDUE'
       )
       .reduce((sum, invoice) => sum + invoice.totalAmount, 0)
 
@@ -297,7 +298,7 @@ export default function InvoicesPage() {
               <p className="text-xs text-gray-500 mt-1">
                 {
                   filteredInvoices.filter(
-                    (i) => i.status === 'SENT' || i.status === 'OVERDUE'
+                    (i) => i.status === 'SENT' || i.status === 'UNPAID' || i.status === 'OVERDUE'
                   ).length
                 }{' '}
                 bekleyen fatura
@@ -378,23 +379,9 @@ export default function InvoicesPage() {
                       </TableCell>
                       <TableCell>
                         <span
-                          className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                            invoice.status === 'PAID'
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                              : invoice.status === 'SENT'
-                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                                : invoice.status === 'OVERDUE'
-                                  ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                                  : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
-                          }`}
+                          className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getInvoiceStatusColor(invoice.status)}`}
                         >
-                          {invoice.status === 'PAID'
-                            ? 'Ödendi'
-                            : invoice.status === 'SENT'
-                              ? 'Gönderildi'
-                              : invoice.status === 'OVERDUE'
-                                ? 'Gecikmiş'
-                                : 'Taslak'}
+                          {getInvoiceStatusText(invoice.status)}
                         </span>
                       </TableCell>
                       <TableCell className="text-right">

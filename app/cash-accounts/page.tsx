@@ -311,11 +311,13 @@ export default function CashAccountsPage() {
                               Detay
                             </Button>
                           </Link>
-                          <Link href={`/cash-accounts/${account.id}/edit`}>
-                            <Button variant="outline" size="sm">
-                              Düzenle
-                            </Button>
-                          </Link>
+                          {account.isActive && (
+                            <Link href={`/cash-accounts/${account.id}/edit`}>
+                              <Button variant="outline" size="sm">
+                                Düzenle
+                              </Button>
+                            </Link>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

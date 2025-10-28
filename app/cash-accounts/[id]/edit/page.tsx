@@ -118,7 +118,12 @@ export default function EditCashAccountPage() {
       })
 
       if (response.ok) {
-        toast.success_update(loadingToastId, 'Kasa başarıyla silindi!')
+        const result = await response.json()
+        if (result.affectedTransactions > 0) {
+          toast.success_update(loadingToastId, `Kasa pasif hale getirildi ve ${result.affectedTransactions} işlem temizlendi!`)
+        } else {
+          toast.success_update(loadingToastId, 'Kasa başarıyla silindi!')
+        }
         router.push('/cash-accounts')
         return true // Başarılı silme - dialog kapatılacak
       } else {
@@ -261,7 +266,7 @@ export default function EditCashAccountPage() {
               <div className="flex items-center justify-between">
                 <ConfirmDialog
                   title="Kasa Sil"
-                  description={`"${cashAccount.name}" kasasını silmek istediğinizden emin misiniz? Bu işlem geri alınamaz ve kasa ile ilgili tüm işlemler de silinecektir.`}
+                  description={`"${cashAccount.name}" kasasını silmek istediğinizden emin misiniz? Eğer bu kasada işlem varsa, kasa pasif hale getirilecek ve işlemlerin kasa bilgisi temizlenecektir.`}
                   confirmText="Sil"
                   cancelText="İptal"
                   onConfirm={handleDelete}

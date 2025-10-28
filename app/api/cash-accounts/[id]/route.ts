@@ -168,16 +168,28 @@ export async function DELETE(
       return NextResponse.json({ error: 'Bu kasayı silme yetkiniz yok' }, { status: 403 })
     }
 
-    // Eğer kasa ile ilişkili işlemler varsa, kasayı pasif yap
+    // Eğer kasa ile ilişkili işlemler varsa, kasayı pasif yap ve işlemleri temizle
     if (existingCashAccount.transactions.length > 0) {
-      const updatedCashAccount = await prisma.cashAccount.update({
-        where: { id: params.id },
-        data: { isActive: false },
+      await prisma.$transaction(async (tx) => {
+        // Kasa ile ilişkili işlemlerin cashAccountId'sini null yap
+        await tx.transaction.updateMany({
+          where: { cashAccountId: params.id },
+          data: { 
+            cashAccountId: null,
+            isPaid: false // Ödeme durumunu da sıfırla
+          },
+        })
+
+        // Kasayı pasif yap
+        await tx.cashAccount.update({
+          where: { id: params.id },
+          data: { isActive: false },
+        })
       })
 
       return NextResponse.json({ 
-        message: 'Kasa pasif hale getirildi (ilişkili işlemler nedeniyle)',
-        cashAccount: updatedCashAccount 
+        message: 'Kasa pasif hale getirildi ve ilişkili işlemler temizlendi',
+        affectedTransactions: existingCashAccount.transactions.length
       })
     }
 

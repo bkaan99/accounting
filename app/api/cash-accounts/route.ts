@@ -42,8 +42,8 @@ export async function GET() {
     if (session.user.companyId) {
       const cashAccounts = await prisma.cashAccount.findMany({
         where: { 
-          companyId: session.user.companyId,
-          isActive: true 
+          companyId: session.user.companyId
+          // isActive filtresini kaldırdık - hem aktif hem pasif kasaları göster
         },
         include: {
           transactions: {

@@ -193,14 +193,16 @@ export async function DELETE(
         ? { invoiceId: params.id }
         : { invoiceId: params.id, companyId: session.user.companyId }
       
-      // İlgili transaction'ları sil
-      await tx.transaction.deleteMany({
-        where: transactionWhereClause
+      // İlgili transaction'ları soft delete yap
+      await tx.transaction.updateMany({
+        where: transactionWhereClause,
+        data: { isDeleted: true }
       })
 
-      // Faturayı sil
-      await tx.invoice.delete({
-        where: whereClause
+      // Faturayı soft delete yap
+      await tx.invoice.update({
+        where: whereClause,
+        data: { isDeleted: true }
       })
     })
 

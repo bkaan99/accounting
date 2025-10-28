@@ -250,22 +250,19 @@ export async function DELETE(
         })
       }
 
-      // Eğer işlem bir faturaya bağlıysa, faturayı da sil
+      // Eğer işlem bir faturaya bağlıysa, faturayı da soft delete yap
       if (existingTransaction.invoiceId) {
-        // Önce fatura item'larını sil
-        await tx.invoiceItem.deleteMany({
-          where: { invoiceId: existingTransaction.invoiceId }
-        })
-        
-        // Sonra faturayı sil
-        await tx.invoice.delete({
-          where: { id: existingTransaction.invoiceId }
+        // Faturayı soft delete yap
+        await tx.invoice.update({
+          where: { id: existingTransaction.invoiceId },
+          data: { isDeleted: true }
         })
       }
 
-      // İşlemi sil
-      await tx.transaction.delete({
-        where: { id: params.id }
+      // İşlemi soft delete yap
+      await tx.transaction.update({
+        where: { id: params.id },
+        data: { isDeleted: true }
       })
     })
 

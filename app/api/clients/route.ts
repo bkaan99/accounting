@@ -38,7 +38,10 @@ export async function GET(request: NextRequest) {
     // Admin ve User sadece kendi şirketinin müşterilerini görebilir
     if (session.user.companyId) {
       const clients = await prisma.client.findMany({
-        where: { companyId: session.user.companyId },
+        where: { 
+          companyId: session.user.companyId,
+          isDeleted: false // Soft delete edilmemiş müşteriler
+        },
         include: {
           user: {
             select: {

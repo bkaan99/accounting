@@ -55,7 +55,10 @@ export async function GET() {
     // Admin ve User sadece kendi şirketinin işlemlerini görebilir
     if (session.user.companyId) {
       const transactions = await prisma.transaction.findMany({
-        where: { companyId: session.user.companyId },
+        where: { 
+          companyId: session.user.companyId,
+          isDeleted: false // Soft delete edilmemiş işlemler
+        },
         include: {
           user: {
             select: {

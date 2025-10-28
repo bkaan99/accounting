@@ -40,7 +40,10 @@ export async function GET() {
     // Admin ve User sadece kendi şirketinin faturalarını görebilir
     if (session.user.companyId) {
       const invoices = await prisma.invoice.findMany({
-        where: { companyId: session.user.companyId },
+        where: { 
+          companyId: session.user.companyId,
+          isDeleted: false // Soft delete edilmemiş faturalar
+        },
         include: {
           client: true,
           user: {

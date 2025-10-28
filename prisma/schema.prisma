@@ -100,6 +100,7 @@ model Client {
   taxId     String?
   companyId String  // Şirkete bağlı
   userId    String  // Hangi kullanıcı tarafından oluşturuldu
+  isDeleted Boolean @default(false) // Soft delete için
 
   // İlişkiler
   company   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
@@ -124,6 +125,7 @@ model Invoice {
   taxAmount   Float    @default(0)
   totalAmount Float    @default(0)
   notes       String?
+  isDeleted   Boolean  @default(false) // Soft delete için
 
   // İlişkiler
   client      Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
@@ -182,6 +184,7 @@ model Transaction {
   date        DateTime @default(now())
   invoiceId   String?  // Fatura ile ilişkili mi?
   isPaid      Boolean  @default(false) // Ödendi mi? (giderler için)
+  isDeleted   Boolean  @default(false) // Soft delete için
   
   // İlişkiler
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)

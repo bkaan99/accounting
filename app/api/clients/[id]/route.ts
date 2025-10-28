@@ -47,11 +47,12 @@ export async function DELETE(
       return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 })
     }
 
-    await prisma.client.delete({
+    await prisma.client.update({
       where: {
         id: params.id,
         userId: session.user.id,
       },
+      data: { isDeleted: true }
     })
 
     return NextResponse.json({ message: 'Müşteri silindi' })

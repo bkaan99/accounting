@@ -42,7 +42,12 @@ interface User {
   id: string
   name: string
   email: string
-  company?: string
+  company?: {
+    id: string
+    name: string
+    taxId?: string
+  }
+  companyId?: string
   phone?: string
   role: 'USER' | 'ADMIN' | 'SUPERADMIN'
   createdAt: string
@@ -53,10 +58,17 @@ interface User {
   }
 }
 
+interface Company {
+  id: string
+  name: string
+  taxId?: string
+}
+
 export default function AdminUsersPage() {
   const { data: session } = useSession()
   const router = useRouter()
   const [users, setUsers] = useState<User[]>([])
+  const [companies, setCompanies] = useState<Company[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
@@ -65,7 +77,7 @@ export default function AdminUsersPage() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    company: '',
+    companyId: '',
     phone: '',
     role: 'USER' as 'USER' | 'ADMIN' | 'SUPERADMIN',
   })
@@ -80,6 +92,7 @@ export default function AdminUsersPage() {
   useEffect(() => {
     if (session?.user.role === 'SUPERADMIN') {
       fetchUsers()
+      fetchCompanies()
     }
   }, [session])
 
@@ -97,6 +110,21 @@ export default function AdminUsersPage() {
       toast.error('Bağlantı hatası oluştu')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const fetchCompanies = async () => {
+    try {
+      const response = await fetch('/api/companies')
+      if (response.ok) {
+        const data = await response.json()
+        setCompanies(data)
+      } else {
+        toast.error('Şirketler yüklenirken hata oluştu')
+      }
+    } catch (error) {
+      console.error('Şirketler yüklenirken hata:', error)
+      toast.error('Bağlantı hatası oluştu')
     }
   }
 
@@ -127,7 +155,7 @@ export default function AdminUsersPage() {
         setFormData({
           name: '',
           email: '',
-          company: '',
+          companyId: '',
           phone: '',
           role: 'USER',
         })
@@ -153,7 +181,7 @@ export default function AdminUsersPage() {
     setFormData({
       name: user.name,
       email: user.email,
-      company: user.company || '',
+      companyId: user.company?.id || '',
       phone: user.phone || '',
       role: user.role,
     })
@@ -273,17 +301,26 @@ export default function AdminUsersPage() {
                     />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="company" className="text-right">
+                    <Label htmlFor="companyId" className="text-right">
                       Şirket
                     </Label>
-                    <Input
-                      id="company"
-                      value={formData.company}
-                      onChange={(e) =>
-                        setFormData({ ...formData, company: e.target.value })
+                    <Select
+                      value={formData.companyId}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, companyId: value })
                       }
-                      className="col-span-3"
-                    />
+                    >
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Şirket seçin" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {companies.map((company) => (
+                          <SelectItem key={company.id} value={company.id}>
+                            {company.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="phone" className="text-right">
@@ -427,7 +464,7 @@ export default function AdminUsersPage() {
                           {user.company && (
                             <div className="text-sm flex items-center">
                               <Building2 className="h-3 w-3 mr-1" />
-                              {user.company}
+                              {typeof user.company === 'string' ? user.company : user.company.name}
                             </div>
                           )}
                         </TableCell>

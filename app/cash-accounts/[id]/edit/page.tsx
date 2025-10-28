@@ -9,8 +9,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ArrowLeft, Save, Wallet, CreditCard, Building2 } from 'lucide-react'
+import { ArrowLeft, Save, Wallet, CreditCard, Building2, Trash2 } from 'lucide-react'
 import Link from 'next/link'
+import { toast } from '@/components/ui/toast'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 interface CashAccount {
   id: string
@@ -28,6 +30,7 @@ export default function EditCashAccountPage() {
   const params = useParams()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [cashAccount, setCashAccount] = useState<CashAccount | null>(null)
   const [formData, setFormData] = useState({
     name: '',
@@ -97,6 +100,33 @@ export default function EditCashAccountPage() {
       alert('Kasa güncellenirken hata oluştu')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleDelete = async (): Promise<boolean> => {
+    setDeleting(true)
+    const loadingToastId = toast.loading('Kasa siliniyor...')
+    
+    try {
+      const response = await fetch(`/api/cash-accounts/${params.id}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        toast.success_update(loadingToastId, 'Kasa başarıyla silindi!')
+        router.push('/cash-accounts')
+        return true // Başarılı silme - dialog kapatılacak
+      } else {
+        const errorData = await response.json()
+        toast.error_update(loadingToastId, errorData.error || 'Kasa silinirken hata oluştu')
+        return false // Hata durumu - dialog açık kalacak
+      }
+    } catch (error) {
+      console.error('Error deleting cash account:', error)
+      toast.error_update(loadingToastId, 'Bağlantı hatası oluştu')
+      return false // Hata durumu - dialog açık kalacak
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -223,16 +253,38 @@ export default function EditCashAccountPage() {
                 </p>
               </div>
 
-              <div className="flex items-center justify-end space-x-4">
-                <Link href={`/cash-accounts/${params.id}`}>
-                  <Button type="button" variant="outline">
-                    İptal
+              <div className="flex items-center justify-between">
+                <ConfirmDialog
+                  title="Kasa Sil"
+                  description={`"${cashAccount.name}" kasasını silmek istediğinizden emin misiniz? Bu işlem geri alınamaz ve kasa ile ilgili tüm işlemler de silinecektir.`}
+                  confirmText="Sil"
+                  cancelText="İptal"
+                  onConfirm={handleDelete}
+                  isLoading={deleting}
+                  variant="destructive"
+                >
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={deleting}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    {deleting ? 'Siliniyor...' : 'Kasayı Sil'}
                   </Button>
-                </Link>
-                <Button type="submit" disabled={loading}>
-                  <Save className="h-4 w-4 mr-2" />
-                  {loading ? 'Güncelleniyor...' : 'Değişiklikleri Kaydet'}
-                </Button>
+                </ConfirmDialog>
+                
+                <div className="flex items-center space-x-4">
+                  <Link href={`/cash-accounts/${params.id}`}>
+                    <Button type="button" variant="outline">
+                      İptal
+                    </Button>
+                  </Link>
+                  <Button type="submit" disabled={loading}>
+                    <Save className="h-4 w-4 mr-2" />
+                    {loading ? 'Güncelleniyor...' : 'Değişiklikleri Kaydet'}
+                  </Button>
+                </div>
               </div>
             </form>
           </CardContent>

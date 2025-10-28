@@ -20,7 +20,7 @@ export async function GET(
         userId: session.user.id, // Sadece kullanıcının kendi faturalarını görebilir
       },
       include: {
-        clientInfo: true,
+        client: true,
         items: true,
       }
     })
@@ -100,7 +100,7 @@ export async function PUT(
             }
           },
           include: {
-            clientInfo: true,
+            client: true,
             items: true,
           }
         })
@@ -137,7 +137,7 @@ export async function PUT(
           updatedAt: new Date(),
         },
         include: {
-          clientInfo: true,
+          client: true,
           items: true,
         }
       })

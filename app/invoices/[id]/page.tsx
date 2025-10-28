@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter, useParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import { useParams, useRouter } from 'next/navigation'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -15,20 +15,21 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import { downloadInvoicePDF, previewInvoicePDF } from '@/lib/pdf-generator'
-import {
-  ArrowLeft,
-  Edit3,
-  Trash2,
-  FileText,
-  Download,
-  Send,
+import { 
+  ArrowLeft, 
+  Edit, 
+  Download, 
+  FileText, 
+  User, 
+  Calendar, 
+  DollarSign,
   CheckCircle,
-  Eye,
+  Clock,
+  AlertCircle,
+  XCircle
 } from 'lucide-react'
 import Link from 'next/link'
-import { toast } from '@/components/ui/toast'
-import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { downloadInvoicePDF } from '@/lib/pdf-generator'
 
 interface InvoiceItem {
   id: string
@@ -44,6 +45,7 @@ interface Client {
   email?: string
   phone?: string
   address?: string
+  taxId?: string
 }
 
 interface Invoice {
@@ -51,10 +53,10 @@ interface Invoice {
   number: string
   issueDate: string
   dueDate: string
-  status: string
-  totalAmount: number
+  status: 'DRAFT' | 'SENT' | 'PAID' | 'OVERDUE'
   subtotal: number
   taxAmount: number
+  totalAmount: number
   notes?: string
   client: Client
   items: InvoiceItem[]
@@ -64,24 +66,16 @@ interface Invoice {
 
 export default function InvoiceDetailPage() {
   const { data: session, status } = useSession()
-  const router = useRouter()
   const params = useParams()
+  const router = useRouter()
   const [invoice, setInvoice] = useState<Invoice | null>(null)
   const [loading, setLoading] = useState(true)
-  const [updating, setUpdating] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login')
-    }
-  }, [status, router])
-
-  useEffect(() => {
-    if (params.id) {
+    if (status === 'authenticated') {
       fetchInvoice()
     }
-  }, [params.id])
+  }, [status, params.id])
 
   const fetchInvoice = async () => {
     try {
@@ -99,84 +93,20 @@ export default function InvoiceDetailPage() {
     }
   }
 
-  const updateInvoiceStatus = async (newStatus: string) => {
-    setUpdating(true)
-    try {
-      const response = await fetch(`/api/invoices/${params.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          status: newStatus,
-          notes: invoice?.notes,
-        }),
-      })
-
-      if (response.ok) {
-        const updatedInvoice = await response.json()
-        setInvoice(updatedInvoice)
-      }
-    } catch (error) {
-      console.error('Error updating invoice:', error)
-    } finally {
-      setUpdating(false)
-    }
-  }
-
-  const deleteInvoice = async (): Promise<boolean> => {
-    setIsDeleting(true)
-    const loadingToastId = toast.loading('Fatura siliniyor...')
-    
-    try {
-      const response = await fetch(`/api/invoices/${params.id}`, {
-        method: 'DELETE',
-      })
-
-      if (response.ok) {
-        toast.success_update(loadingToastId, 'Fatura başarıyla silindi!')
-        router.push('/invoices')
-        return true // Başarılı silme - dialog kapatılacak
-      } else {
-        const errorData = await response.json()
-        toast.error_update(loadingToastId, errorData.error || 'Fatura silinirken hata oluştu')
-        return false // Hata durumu - dialog açık kalacak
-      }
-    } catch (error) {
-      console.error('Error deleting invoice:', error)
-      toast.error_update(loadingToastId, 'Bağlantı hatası oluştu')
-      return false // Hata durumu - dialog açık kalacak
-    } finally {
-      setIsDeleting(false)
-    }
-  }
-
-  const handleDownloadPDF = () => {
-    if (invoice) {
-      downloadInvoicePDF(invoice)
-    }
-  }
-
-  const handlePreviewPDF = () => {
-    if (invoice) {
-      previewInvoicePDF(invoice)
-    }
-  }
-
-  const getStatusColor = (status: string) => {
+  const getStatusIcon = (status: string) => {
     switch (status) {
       case 'PAID':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+        return <CheckCircle className="h-5 w-5 text-green-600" />
       case 'SENT':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+        return <Clock className="h-5 w-5 text-blue-600" />
       case 'OVERDUE':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+        return <AlertCircle className="h-5 w-5 text-red-600" />
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
+        return <XCircle className="h-5 w-5 text-gray-600" />
     }
   }
 
-  const getStatusText = (status: string) => {
+  const getStatusLabel = (status: string) => {
     switch (status) {
       case 'PAID':
         return 'Ödendi'
@@ -189,10 +119,49 @@ export default function InvoiceDetailPage() {
     }
   }
 
-  if (status === 'loading' || loading) {
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'PAID':
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+      case 'SENT':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+      case 'OVERDUE':
+        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+      default:
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+    }
+  }
+
+  const handleDownloadPDF = () => {
+    if (invoice) {
+      downloadInvoicePDF({
+        id: invoice.id,
+        number: invoice.number,
+        issueDate: invoice.issueDate,
+        dueDate: invoice.dueDate,
+        status: invoice.status,
+        totalAmount: invoice.totalAmount,
+        notes: invoice.notes,
+        clientInfo: {
+          name: invoice.client.name,
+          email: invoice.client.email,
+          phone: invoice.client.phone,
+          address: invoice.client.address,
+        },
+        items: invoice.items.map(item => ({
+          description: item.description,
+          quantity: item.quantity,
+          price: item.price,
+          total: item.total,
+        })),
+      })
+    }
+  }
+
+  if (loading) {
     return (
       <MainLayout>
-        <div className="flex items-center justify-center min-h-screen">
+        <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-lg">Yükleniyor...</div>
         </div>
       </MainLayout>
@@ -202,17 +171,16 @@ export default function InvoiceDetailPage() {
   if (!invoice) {
     return (
       <MainLayout>
-        <div className="flex items-center justify-center min-h-screen">
+        <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
-            <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
               Fatura bulunamadı
             </h2>
             <p className="text-gray-600 dark:text-gray-400 mb-4">
-              Aradığınız fatura mevcut değil veya silinmiş olabilir.
+              Aradığınız fatura mevcut değil veya erişim yetkiniz yok.
             </p>
             <Link href="/invoices">
-              <Button>Faturalara Dön</Button>
+              <Button>Faturaları Görüntüle</Button>
             </Link>
           </div>
         </div>
@@ -223,7 +191,6 @@ export default function InvoiceDetailPage() {
   return (
     <MainLayout>
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <Link href="/invoices">
@@ -232,101 +199,69 @@ export default function InvoiceDetailPage() {
                 Geri
               </Button>
             </Link>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                Fatura {invoice.number}
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400">
-                {formatDate(invoice.issueDate)} tarihinde oluşturuldu
-              </p>
+            <div className="flex items-center space-x-3">
+              <FileText className="h-8 w-8 text-blue-600" />
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                  {invoice.number}
+                </h1>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Fatura Detayları
+                </p>
+              </div>
             </div>
           </div>
-
           <div className="flex items-center space-x-2">
-            <span
-              className={`inline-flex px-3 py-1 text-sm font-medium rounded-full ${getStatusColor(invoice.status)}`}
-            >
-              {getStatusText(invoice.status)}
-            </span>
+            <Link href={`/invoices/${invoice.id}/edit`}>
+              <Button variant="outline">
+                <Edit className="h-4 w-4 mr-2" />
+                Düzenle
+              </Button>
+            </Link>
+            <Button onClick={handleDownloadPDF}>
+              <Download className="h-4 w-4 mr-2" />
+              PDF İndir
+            </Button>
           </div>
         </div>
 
+        {/* Fatura Bilgileri */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Ana İçerik */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Fatura Bilgileri */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Fatura Bilgileri</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                      Fatura No
-                    </p>
-                    <p className="text-lg font-semibold">{invoice.number}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                      Durum
-                    </p>
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(invoice.status)}`}
-                    >
-                      {getStatusText(invoice.status)}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                      Fatura Tarihi
-                    </p>
-                    <p className="text-lg">{formatDate(invoice.issueDate)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                      Vade Tarihi
-                    </p>
-                    <p className="text-lg">{formatDate(invoice.dueDate)}</p>
-                  </div>
-                </div>
-                {invoice.notes && (
-                  <div className="mt-4">
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                      Notlar
-                    </p>
-                    <p className="text-sm mt-1 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                      {invoice.notes}
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
             {/* Müşteri Bilgileri */}
             <Card>
               <CardHeader>
-                <CardTitle>Müşteri Bilgileri</CardTitle>
+                <CardTitle className="flex items-center space-x-2">
+                  <User className="h-5 w-5" />
+                  <span>Müşteri Bilgileri</span>
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  <h3 className="text-lg font-semibold">
-                    {invoice.client.name}
-                  </h3>
+                  <div>
+                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                      {invoice.client.name}
+                    </span>
+                  </div>
                   {invoice.client.email && (
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
                       📧 {invoice.client.email}
-                    </p>
+                    </div>
                   )}
                   {invoice.client.phone && (
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
                       📞 {invoice.client.phone}
-                    </p>
+                    </div>
                   )}
                   {invoice.client.address && (
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
                       📍 {invoice.client.address}
-                    </p>
+                    </div>
+                  )}
+                  {invoice.client.taxId && (
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      🆔 Vergi No: {invoice.client.taxId}
+                    </div>
                   )}
                 </div>
               </CardContent>
@@ -335,14 +270,17 @@ export default function InvoiceDetailPage() {
             {/* Fatura Kalemleri */}
             <Card>
               <CardHeader>
-                <CardTitle>Fatura Kalemleri</CardTitle>
+                <CardTitle className="flex items-center space-x-2">
+                  <FileText className="h-5 w-5" />
+                  <span>Fatura Kalemleri</span>
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Açıklama</TableHead>
-                      <TableHead className="text-center">Miktar</TableHead>
+                      <TableHead className="text-right">Miktar</TableHead>
                       <TableHead className="text-right">Birim Fiyat</TableHead>
                       <TableHead className="text-right">Toplam</TableHead>
                     </TableRow>
@@ -353,7 +291,7 @@ export default function InvoiceDetailPage() {
                         <TableCell className="font-medium">
                           {item.description}
                         </TableCell>
-                        <TableCell className="text-center">
+                        <TableCell className="text-right">
                           {item.quantity}
                         </TableCell>
                         <TableCell className="text-right">
@@ -366,123 +304,82 @@ export default function InvoiceDetailPage() {
                     ))}
                   </TableBody>
                 </Table>
-
-                <div className="mt-6 space-y-2">
-                  <div className="flex justify-between items-center border-t pt-4">
-                    <span className="text-xl font-semibold">Genel Toplam</span>
-                    <span className="text-xl font-bold">
-                      {formatCurrency(invoice.totalAmount)}
-                    </span>
-                  </div>
-                </div>
               </CardContent>
             </Card>
+
+            {/* Notlar */}
+            {invoice.notes && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Notlar</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    {invoice.notes}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
-          {/* Yan Panel - İşlemler */}
+          {/* Sağ Panel - Fatura Özeti */}
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>İşlemler</CardTitle>
+                <CardTitle className="flex items-center space-x-2">
+                  <DollarSign className="h-5 w-5" />
+                  <span>Fatura Özeti</span>
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                {invoice.status === 'DRAFT' && (
-                  <Button
-                    onClick={() => updateInvoiceStatus('SENT')}
-                    disabled={updating}
-                    className="w-full"
-                  >
-                    <Send className="h-4 w-4 mr-2" />
-                    {updating ? 'Güncelleniyor...' : 'Gönder'}
-                  </Button>
-                )}
-
-                {invoice.status === 'SENT' && (
-                  <Button
-                    onClick={() => updateInvoiceStatus('PAID')}
-                    disabled={updating}
-                    className="w-full"
-                    variant="outline"
-                  >
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    {updating ? 'Güncelleniyor...' : 'Ödendi Olarak İşaretle'}
-                  </Button>
-                )}
-
-                <div className="space-y-2">
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={handleDownloadPDF}
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    PDF İndir
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={handlePreviewPDF}
-                  >
-                    <Eye className="h-4 w-4 mr-2" />
-                    PDF Önizle
-                  </Button>
+              <CardContent className="space-y-4">
+                <div className="flex justify-between">
+                  <span className="text-gray-600 dark:text-gray-400">Ara Toplam:</span>
+                  <span className="font-medium">{formatCurrency(invoice.subtotal)}</span>
                 </div>
-
-                <Link href={`/invoices/${invoice.id}/edit`}>
-                  <Button variant="outline" className="w-full">
-                    <Edit3 className="h-4 w-4 mr-2" />
-                    Düzenle
-                  </Button>
-                </Link>
-
-                <ConfirmDialog
-                  title="Fatura Sil"
-                  description={`"${invoice.number}" numaralı faturayı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`}
-                  confirmText="Sil"
-                  cancelText="İptal"
-                  onConfirm={deleteInvoice}
-                  isLoading={isDeleting}
-                  variant="destructive"
-                >
-                  <Button
-                    variant="outline"
-                    disabled={isDeleting}
-                    className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Sil
-                  </Button>
-                </ConfirmDialog>
+                <div className="flex justify-between">
+                  <span className="text-gray-600 dark:text-gray-400">KDV:</span>
+                  <span className="font-medium">{formatCurrency(invoice.taxAmount)}</span>
+                </div>
+                <hr className="border-gray-200 dark:border-gray-700" />
+                <div className="flex justify-between text-lg font-bold">
+                  <span>Toplam:</span>
+                  <span className="text-blue-600">{formatCurrency(invoice.totalAmount)}</span>
+                </div>
               </CardContent>
             </Card>
 
-            {/* Özet */}
             <Card>
               <CardHeader>
-                <CardTitle>Özet</CardTitle>
+                <CardTitle className="flex items-center space-x-2">
+                  <Calendar className="h-5 w-5" />
+                  <span>Fatura Bilgileri</span>
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">
-                    Toplam Kalem
-                  </span>
-                  <span>{invoice.items.length}</span>
+              <CardContent className="space-y-4">
+                <div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Fatura Tarihi</div>
+                  <div className="font-medium">{formatDate(invoice.issueDate)}</div>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">
-                    Oluşturulma
-                  </span>
-                  <span>{formatDate(invoice.createdAt)}</span>
+                <div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Vade Tarihi</div>
+                  <div className="font-medium">{formatDate(invoice.dueDate)}</div>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">
-                    Son Güncelleme
-                  </span>
-                  <span>{formatDate(invoice.updatedAt)}</span>
+                <div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Durum</div>
+                  <div className="flex items-center space-x-2 mt-1">
+                    {getStatusIcon(invoice.status)}
+                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(invoice.status)}`}>
+                      {getStatusLabel(invoice.status)}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between text-lg font-semibold border-t pt-3">
-                  <span>Toplam Tutar</span>
-                  <span>{formatCurrency(invoice.totalAmount)}</span>
+                <div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Oluşturulma</div>
+                  <div className="font-medium">{formatDate(invoice.createdAt)}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Son Güncelleme</div>
+                  <div className="font-medium">{formatDate(invoice.updatedAt)}</div>
                 </div>
               </CardContent>
             </Card>

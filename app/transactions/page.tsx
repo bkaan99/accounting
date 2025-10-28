@@ -14,7 +14,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import { Plus, TrendingUp, TrendingDown, DollarSign } from 'lucide-react'
+import { Plus, TrendingUp, TrendingDown, DollarSign, Wallet, CreditCard, Building2 } from 'lucide-react'
 import { TransactionActions } from '@/components/transaction-actions'
 import { TransactionFilters } from '@/components/transaction-filters'
 import Link from 'next/link'
@@ -29,12 +29,19 @@ interface Transaction {
   createdAt: string
   updatedAt: string
   invoiceId?: string
+  cashAccountId?: string
+  isPaid: boolean
   invoice?: {
     id: string
     number: string
     clientInfo: {
       name: string
     }
+  }
+  cashAccount?: {
+    id: string
+    name: string
+    type: 'CASH' | 'CREDIT_CARD' | 'BANK_ACCOUNT'
   }
 }
 
@@ -226,7 +233,9 @@ export default function TransactionsPage() {
                     <TableHead>Tip</TableHead>
                     <TableHead>Kategori</TableHead>
                     <TableHead>Açıklama</TableHead>
+                    <TableHead>Kasa</TableHead>
                     <TableHead>Fatura/Kaynak</TableHead>
+                    <TableHead>Ödeme</TableHead>
                     <TableHead className="text-right">Tutar</TableHead>
                     <TableHead className="text-right">İşlemler</TableHead>
                   </TableRow>
@@ -256,6 +265,25 @@ export default function TransactionsPage() {
                       <TableCell>{transaction.category}</TableCell>
                       <TableCell>{transaction.description}</TableCell>
                       <TableCell>
+                        {transaction.cashAccount ? (
+                          <div className="flex items-center space-x-2">
+                            {transaction.cashAccount.type === 'CASH' && <Wallet className="h-4 w-4 text-green-600" />}
+                            {transaction.cashAccount.type === 'CREDIT_CARD' && <CreditCard className="h-4 w-4 text-blue-600" />}
+                            {transaction.cashAccount.type === 'BANK_ACCOUNT' && <Building2 className="h-4 w-4 text-purple-600" />}
+                            <Link 
+                              href={`/cash-accounts/${transaction.cashAccount.id}`}
+                              className="text-blue-600 hover:text-blue-800 font-medium"
+                            >
+                              {transaction.cashAccount.name}
+                            </Link>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-sm">
+                            Kasa Yok
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         {transaction.invoice ? (
                           <div className="flex flex-col">
                             <Link 
@@ -272,6 +300,19 @@ export default function TransactionsPage() {
                           <span className="text-gray-400 text-sm">
                             Manuel İşlem
                           </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {transaction.cashAccount ? (
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            transaction.isPaid 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-orange-100 text-orange-800'
+                          }`}>
+                            {transaction.isPaid ? 'Ödendi' : 'Ödenmedi'}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 text-sm">-</span>
                         )}
                       </TableCell>
                       <TableCell className="text-right">

@@ -55,6 +55,7 @@ model Company {
   clients       Client[]       // Şirketin müşterileri
   invoices      Invoice[]      // Şirketin faturaları
   transactions  Transaction[]   // Şirketin işlemleri
+  cashAccounts  CashAccount[]   // Şirketin kasaları
 }
 
 // Kullanıcılar - Kişiler (şirketlere bağlı, rolleri var)
@@ -149,22 +150,43 @@ model InvoiceItem {
   updatedAt DateTime @updatedAt
 }
 
+// Kasa Türleri - Şirketlere bağlı
+model CashAccount {
+  id          String   @id @default(cuid())
+  companyId   String   // Hangi şirkete ait
+  name        String   // Kasa adı (örn: "Nakit Kasa", "Kredi Kartı Kasası")
+  type        String   // CASH, CREDIT_CARD, BANK_ACCOUNT
+  balance     Float    @default(0) // Mevcut bakiye
+  isActive    Boolean  @default(true)
+  description String?
+  
+  // İlişkiler
+  company     Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  transactions Transaction[] // Bu kasaya ait işlemler
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 // İşlemler - Hem kullanıcıya hem şirkete bağlı
 model Transaction {
   id          String   @id @default(cuid())
   userId      String   // Hangi kullanıcı oluşturdu
   companyId   String   // Hangi şirkete ait
+  cashAccountId String? // Hangi kasaya ait (null ise kasa işlemi değil)
   type        String   // INCOME, EXPENSE
   category    String
   amount      Float
   description String?
   date        DateTime @default(now())
   invoiceId   String?  // Fatura ile ilişkili mi?
+  isPaid      Boolean  @default(false) // Ödendi mi? (giderler için)
   
   // İlişkiler
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  company     Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  invoice     Invoice?  @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company     Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  cashAccount CashAccount? @relation(fields: [cashAccountId], references: [id], onDelete: SetNull)
+  invoice     Invoice?     @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

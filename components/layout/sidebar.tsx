@@ -16,6 +16,7 @@ import {
   BarChart3,
   HelpCircle,
   Sparkles,
+  Wallet,
 } from 'lucide-react'
 
 const getUserMenuItems = (userRole?: string) => {
@@ -43,6 +44,12 @@ const getUserMenuItems = (userRole?: string) => {
       href: '/transactions',
       icon: TrendingUp,
       gradient: 'from-orange-500 to-red-500',
+    },
+    {
+      title: 'Kasa Yönetimi',
+      href: '/cash-accounts',
+      icon: Wallet,
+      gradient: 'from-emerald-500 to-green-500',
     },
     {
       title: 'Raporlar',

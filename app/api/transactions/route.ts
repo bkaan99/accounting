@@ -27,6 +27,13 @@ export async function GET() {
               name: true,
             },
           },
+          cashAccount: {
+            select: {
+              id: true,
+              name: true,
+              type: true,
+            }
+          },
           invoice: {
             select: {
               id: true,
@@ -55,6 +62,13 @@ export async function GET() {
               id: true,
               name: true,
             },
+          },
+          cashAccount: {
+            select: {
+              id: true,
+              name: true,
+              type: true,
+            }
           },
           invoice: {
             select: {
@@ -93,7 +107,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { type, category, amount, description, date } = body
+    const { type, category, amount, description, date, cashAccountId, isPaid = false } = body
 
     // Validation
     if (!type || !category || !amount || !date) {
@@ -125,16 +139,66 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const transaction = await prisma.transaction.create({
-      data: {
-        userId: session.user.id,
-        companyId: session.user.companyId,
-        type,
-        category,
-        amount: parseFloat(amount),
-        description: description || null,
-        date: new Date(date),
+    // Kasa seçildiyse kasa kontrolü yap
+    if (cashAccountId) {
+      const cashAccount = await prisma.cashAccount.findUnique({
+        where: { id: cashAccountId },
+      })
+
+      if (!cashAccount) {
+        return NextResponse.json(
+          { error: 'Kasa bulunamadı' },
+          { status: 400 }
+        )
       }
+
+      if (cashAccount.companyId !== session.user.companyId) {
+        return NextResponse.json(
+          { error: 'Bu kasaya erişim yetkiniz yok' },
+          { status: 403 }
+        )
+      }
+
+      if (!cashAccount.isActive) {
+        return NextResponse.json(
+          { error: 'Bu kasa aktif değil' },
+          { status: 400 }
+        )
+      }
+    }
+
+    // İşlem oluştur ve kasa bakiyesini güncelle
+    const transaction = await prisma.$transaction(async (tx) => {
+      // İşlemi oluştur
+      const newTransaction = await tx.transaction.create({
+        data: {
+          userId: session.user.id,
+          companyId: session.user.companyId,
+          cashAccountId: cashAccountId || null,
+          type,
+          category,
+          amount: parseFloat(amount),
+          description: description || null,
+          date: new Date(date),
+          isPaid,
+        }
+      })
+
+      // Eğer kasa seçildiyse ve işlem ödendiyse kasa bakiyesini güncelle
+      if (cashAccountId && isPaid) {
+        const balanceChange = type === 'INCOME' ? parseFloat(amount) : -parseFloat(amount)
+        
+        await tx.cashAccount.update({
+          where: { id: cashAccountId },
+          data: {
+            balance: {
+              increment: balanceChange
+            }
+          }
+        })
+      }
+
+      return newTransaction
     })
 
     return NextResponse.json(transaction, { status: 201 })

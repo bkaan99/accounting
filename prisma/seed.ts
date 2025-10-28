@@ -42,7 +42,40 @@ async function main() {
 
     console.log('✅ Şirketler oluşturuldu')
 
-    // 2. Kullanıcılar oluştur
+    // 2. Kasa hesapları oluştur
+    const cashAccount1 = await prisma.cashAccount.create({
+      data: {
+        companyId: company1.id,
+        name: 'Nakit Kasa',
+        type: 'CASH',
+        balance: 5000.00,
+        description: 'Ana nakit kasa hesabı'
+      }
+    })
+
+    const cashAccount2 = await prisma.cashAccount.create({
+      data: {
+        companyId: company1.id,
+        name: 'Kredi Kartı Kasası',
+        type: 'CREDIT_CARD',
+        balance: 2500.00,
+        description: 'Kredi kartı ile yapılan işlemler'
+      }
+    })
+
+    const cashAccount3 = await prisma.cashAccount.create({
+      data: {
+        companyId: company2.id,
+        name: 'Banka Hesabı',
+        type: 'BANK_ACCOUNT',
+        balance: 10000.00,
+        description: 'Ana banka hesabı'
+      }
+    })
+
+    console.log('✅ Kasa hesapları oluşturuldu')
+
+    // 3. Kullanıcılar oluştur
     const hashedPassword = await bcrypt.hash('123456', 10)
 
     // Süperadmin
@@ -221,40 +254,58 @@ async function main() {
         {
           userId: admin1.id,
           companyId: company1.id,
+          cashAccountId: cashAccount1.id,
           type: 'INCOME',
           category: 'Hizmet Geliri',
           amount: 1180,
           description: 'Web sitesi geliştirme geliri',
           date: new Date('2024-01-15'),
-          invoiceId: invoice1.id
+          invoiceId: invoice1.id,
+          isPaid: true
         },
         {
           userId: admin2.id,
           companyId: company2.id,
+          cashAccountId: cashAccount3.id,
           type: 'INCOME',
           category: 'Hizmet Geliri',
           amount: 2950,
           description: 'Danışmanlık geliri',
           date: new Date('2024-01-20'),
-          invoiceId: invoice2.id
+          invoiceId: invoice2.id,
+          isPaid: true
+        },
+        {
+          userId: admin1.id,
+          companyId: company1.id,
+          cashAccountId: cashAccount2.id,
+          type: 'EXPENSE',
+          category: 'Ofis Malzemeleri',
+          amount: 150,
+          description: 'Kırtasiye alışverişi',
+          date: new Date('2024-01-10'),
+          isPaid: true
+        },
+        {
+          userId: user1.id,
+          companyId: company1.id,
+          cashAccountId: cashAccount1.id,
+          type: 'EXPENSE',
+          category: 'Yakıt',
+          amount: 200,
+          description: 'Araç yakıtı',
+          date: new Date('2024-01-12'),
+          isPaid: true
         },
         {
           userId: admin1.id,
           companyId: company1.id,
           type: 'EXPENSE',
-          category: 'Ofis Malzemeleri',
-          amount: 150,
-          description: 'Kırtasiye alışverişi',
-          date: new Date('2024-01-10')
-        },
-        {
-          userId: user1.id,
-          companyId: company1.id,
-          type: 'EXPENSE',
-          category: 'Yakıt',
-          amount: 200,
-          description: 'Araç yakıtı',
-          date: new Date('2024-01-12')
+          category: 'Elektrik',
+          amount: 300,
+          description: 'Elektrik faturası',
+          date: new Date('2024-01-25'),
+          isPaid: false
         }
       ]
     })

@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
         }
       })
 
-      // Auto-create expense transaction
+      // Auto-create expense transaction (ödendi olarak işaretlenmez, manuel olarak ödenecek)
       await tx.transaction.create({
         data: {
           userId: session.user.id,
@@ -168,6 +168,7 @@ export async function POST(request: NextRequest) {
           description: `${client?.name || 'Tedarikçi'} - Fatura No: ${invoiceNumber}`,
           date: new Date(validatedData.issueDate),
           invoiceId: newInvoice.id,
+          isPaid: false, // Fatura oluşturulduğunda henüz ödenmemiş
         }
       })
 

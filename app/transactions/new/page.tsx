@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { ArrowLeft, Save, TrendingUp, TrendingDown } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ArrowLeft, Save, TrendingUp, TrendingDown, Wallet, CreditCard, Building2 } from 'lucide-react'
 import Link from 'next/link'
 
 interface TransactionForm {
@@ -17,6 +18,15 @@ interface TransactionForm {
   amount: string
   description: string
   date: string
+  cashAccountId: string
+  isPaid: boolean
+}
+
+interface CashAccount {
+  id: string
+  name: string
+  type: 'CASH' | 'CREDIT_CARD' | 'BANK_ACCOUNT'
+  balance: number
 }
 
 // Predefined categories
@@ -52,19 +62,36 @@ export default function NewTransactionPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [cashAccounts, setCashAccounts] = useState<CashAccount[]>([])
   const [form, setForm] = useState<TransactionForm>({
     type: '',
     category: '',
     amount: '',
     description: '',
     date: new Date().toISOString().split('T')[0],
+    cashAccountId: '',
+    isPaid: false,
   })
 
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login')
+    } else if (status === 'authenticated') {
+      fetchCashAccounts()
     }
   }, [status, router])
+
+  const fetchCashAccounts = async () => {
+    try {
+      const response = await fetch('/api/cash-accounts')
+      if (response.ok) {
+        const data = await response.json()
+        setCashAccounts(data.filter((account: CashAccount) => account.isActive))
+      }
+    } catch (error) {
+      console.error('Error fetching cash accounts:', error)
+    }
+  }
 
   const getCategories = () => {
     return form.type === 'INCOME' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
@@ -94,6 +121,8 @@ export default function NewTransactionPage() {
           amount: parseFloat(form.amount),
           description: form.description,
           date: form.date,
+          cashAccountId: form.cashAccountId || null,
+          isPaid: form.isPaid,
         }),
       })
 
@@ -293,6 +322,68 @@ export default function NewTransactionPage() {
                     placeholder="İşlem açıklaması (opsiyonel)"
                   />
                 </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="cashAccount">Kasa Seçimi</Label>
+                    <Select
+                      value={form.cashAccountId}
+                      onValueChange={(value) =>
+                        setForm((prev) => ({ ...prev, cashAccountId: value }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Kasa seçiniz (opsiyonel)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-gray-500">Kasa seçmeyin</span>
+                          </div>
+                        </SelectItem>
+                        {cashAccounts.map((account) => (
+                          <SelectItem key={account.id} value={account.id}>
+                            <div className="flex items-center space-x-2">
+                              {account.type === 'CASH' && <Wallet className="h-4 w-4 text-green-600" />}
+                              {account.type === 'CREDIT_CARD' && <CreditCard className="h-4 w-4 text-blue-600" />}
+                              {account.type === 'BANK_ACCOUNT' && <Building2 className="h-4 w-4 text-purple-600" />}
+                              <span>{account.name}</span>
+                              <span className="text-sm text-gray-500">
+                                (₺{account.balance.toFixed(2)})
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Kasa seçilirse işlem bu kasaya kaydedilir
+                    </p>
+                  </div>
+
+                  {form.cashAccountId && (
+                    <div>
+                      <Label htmlFor="isPaid">Ödeme Durumu</Label>
+                      <Select
+                        value={form.isPaid ? 'true' : 'false'}
+                        onValueChange={(value) =>
+                          setForm((prev) => ({ ...prev, isPaid: value === 'true' }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="false">Ödenmedi</SelectItem>
+                          <SelectItem value="true">Ödendi</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Ödendi seçilirse kasa bakiyesi güncellenir
+                      </p>
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           )}
@@ -350,6 +441,22 @@ export default function NewTransactionPage() {
                       {new Date(form.date).toLocaleDateString('tr-TR')}
                     </span>
                   </div>
+                  {form.cashAccountId && (
+                    <div className="flex justify-between">
+                      <span className="font-medium">Kasa:</span>
+                      <span>
+                        {cashAccounts.find(a => a.id === form.cashAccountId)?.name || '-'}
+                      </span>
+                    </div>
+                  )}
+                  {form.cashAccountId && (
+                    <div className="flex justify-between">
+                      <span className="font-medium">Ödeme Durumu:</span>
+                      <span className={form.isPaid ? 'text-green-600' : 'text-orange-600'}>
+                        {form.isPaid ? 'Ödendi' : 'Ödenmedi'}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

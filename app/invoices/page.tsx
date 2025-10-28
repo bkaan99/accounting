@@ -211,6 +211,11 @@ export default function InvoicesPage() {
     setFilters(newFilters)
   }
 
+  const handleInvoiceDelete = async () => {
+    // Faturaları yeniden yükle
+    await fetchInvoices()
+  }
+
   if (loading) {
     return (
       <MainLayout>
@@ -393,7 +398,7 @@ export default function InvoicesPage() {
                         </span>
                       </TableCell>
                       <TableCell className="text-right">
-                        <InvoiceActions invoice={invoice} />
+                        <InvoiceActions invoice={invoice} onDelete={handleInvoiceDelete} />
                       </TableCell>
                     </TableRow>
                   ))}

@@ -1,15 +1,25 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter, useParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import { useParams, useRouter } from 'next/navigation'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { ArrowLeft, Plus, Trash2, Save } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ArrowLeft, Save, Plus, Trash2 } from 'lucide-react'
 import Link from 'next/link'
+import { toast } from '@/components/ui/toast'
+
+interface InvoiceItem {
+  id?: string
+  description: string
+  quantity: number
+  unitPrice: number
+  total: number
+}
 
 interface Client {
   id: string
@@ -19,65 +29,41 @@ interface Client {
   address?: string
 }
 
-interface InvoiceItem {
-  id?: string
-  description: string
-  quantity: number
-  price: number
-  total: number
-}
-
 interface Invoice {
   id: string
   number: string
-  clientId: string
   issueDate: string
   dueDate: string
-  status: string
-  totalAmount: number
+  status: 'DRAFT' | 'SENT' | 'PAID' | 'OVERDUE'
   notes?: string
   client: Client
   items: InvoiceItem[]
 }
 
-interface InvoiceForm {
-  clientId: string
-  issueDate: string
-  dueDate: string
-  status: string
-  notes: string
-  items: Omit<InvoiceItem, 'id' | 'total'>[]
-}
-
 export default function EditInvoicePage() {
   const { data: session, status } = useSession()
-  const router = useRouter()
   const params = useParams()
-  const [clients, setClients] = useState<Client[]>([])
+  const router = useRouter()
+  const [loading, setLoading] = useState(false)
   const [invoice, setInvoice] = useState<Invoice | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState<InvoiceForm>({
+  const [clients, setClients] = useState<Client[]>([])
+  const [formData, setFormData] = useState({
     clientId: '',
     issueDate: '',
     dueDate: '',
-    status: 'DRAFT',
+    status: 'DRAFT' as 'DRAFT' | 'SENT' | 'PAID' | 'OVERDUE',
     notes: '',
-    items: [{ description: '', quantity: 1, price: 0 }],
+    items: [] as InvoiceItem[],
   })
 
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login')
-    }
-  }, [status, router])
-
-  useEffect(() => {
-    if (params.id) {
+    } else if (status === 'authenticated') {
       fetchInvoice()
       fetchClients()
     }
-  }, [params.id])
+  }, [status, params.id])
 
   const fetchInvoice = async () => {
     try {
@@ -85,18 +71,18 @@ export default function EditInvoicePage() {
       if (response.ok) {
         const data = await response.json()
         setInvoice(data)
-
-        // Form'u mevcut verilerle doldur
-        setForm({
+        setFormData({
           clientId: data.clientId,
-          issueDate: data.issueDate.split('T')[0],
-          dueDate: data.dueDate.split('T')[0],
+          issueDate: new Date(data.issueDate).toISOString().split('T')[0],
+          dueDate: new Date(data.dueDate).toISOString().split('T')[0],
           status: data.status,
           notes: data.notes || '',
-          items: data.items.map((item: InvoiceItem) => ({
+          items: data.items.map((item: any) => ({
+            id: item.id,
             description: item.description,
             quantity: item.quantity,
-            price: item.price,
+            unitPrice: item.price,
+            total: item.total,
           })),
         })
       } else if (response.status === 404) {
@@ -104,8 +90,6 @@ export default function EditInvoicePage() {
       }
     } catch (error) {
       console.error('Error fetching invoice:', error)
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -121,42 +105,60 @@ export default function EditInvoicePage() {
     }
   }
 
-  const handleItemChange = (
-    index: number,
-    field: keyof Omit<InvoiceItem, 'id' | 'total'>,
-    value: string | number
-  ) => {
-    setForm((prev) => ({
-      ...prev,
-      items: prev.items.map((item, i) =>
-        i === index ? { ...item, [field]: value } : item
-      ),
-    }))
-  }
-
   const addItem = () => {
-    setForm((prev) => ({
+    setFormData(prev => ({
       ...prev,
-      items: [...prev.items, { description: '', quantity: 1, price: 0 }],
+      items: [...prev.items, {
+        description: '',
+        quantity: 1,
+        unitPrice: 0,
+        total: 0,
+      }]
     }))
   }
 
   const removeItem = (index: number) => {
-    if (form.items.length > 1) {
-      setForm((prev) => ({
-        ...prev,
-        items: prev.items.filter((_, i) => i !== index),
-      }))
-    }
+    setFormData(prev => ({
+      ...prev,
+      items: prev.items.filter((_, i) => i !== index)
+    }))
+  }
+
+  const updateItem = (index: number, field: keyof InvoiceItem, value: any) => {
+    setFormData(prev => {
+      const newItems = [...prev.items]
+      newItems[index] = { ...newItems[index], [field]: value }
+      
+      // Calculate total
+      if (field === 'quantity' || field === 'unitPrice') {
+        newItems[index].total = newItems[index].quantity * newItems[index].unitPrice
+      }
+      
+      return { ...prev, items: newItems }
+    })
   }
 
   const calculateTotal = () => {
-    return form.items.reduce((sum, item) => sum + item.quantity * item.price, 0)
+    return formData.items.reduce((sum, item) => sum + item.total, 0)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setSaving(true)
+    
+    if (!formData.clientId || formData.items.length === 0) {
+      toast.error('Müşteri seçimi ve en az bir kalem gereklidir')
+      return
+    }
+
+    // Validate items
+    for (const item of formData.items) {
+      if (!item.description || item.quantity <= 0 || item.unitPrice <= 0) {
+        toast.error('Tüm kalemlerin açıklama, miktar ve birim fiyatı dolu olmalıdır')
+        return
+      }
+    }
+
+    setLoading(true)
 
     try {
       const response = await fetch(`/api/invoices/${params.id}`, {
@@ -165,51 +167,39 @@ export default function EditInvoicePage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...form,
-          items: form.items.map((item) => ({
+          clientId: formData.clientId,
+          issueDate: formData.issueDate,
+          dueDate: formData.dueDate,
+          status: formData.status,
+          notes: formData.notes,
+          items: formData.items.map(item => ({
             description: item.description,
             quantity: item.quantity,
-            unitPrice: item.price,
+            unitPrice: item.unitPrice,
           })),
         }),
       })
 
       if (response.ok) {
-        router.push(`/invoices/${params.id}`)
+        toast.success('Fatura başarıyla güncellendi!')
+        router.push('/invoices')
       } else {
         const error = await response.json()
-        alert(error.error || 'Fatura güncellenirken hata oluştu')
+        toast.error(error.error || 'Fatura güncellenirken hata oluştu')
       }
     } catch (error) {
       console.error('Error updating invoice:', error)
-      alert('Fatura güncellenirken hata oluştu')
+      toast.error('Fatura güncellenirken hata oluştu')
     } finally {
-      setSaving(false)
+      setLoading(false)
     }
   }
 
-  if (status === 'loading' || loading) {
+  if (status === 'loading' || !invoice) {
     return (
       <MainLayout>
-        <div className="flex items-center justify-center min-h-screen">
+        <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-lg">Yükleniyor...</div>
-        </div>
-      </MainLayout>
-    )
-  }
-
-  if (!invoice) {
-    return (
-      <MainLayout>
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
-              Fatura bulunamadı
-            </h2>
-            <Link href="/invoices">
-              <Button>Faturalara Dön</Button>
-            </Link>
-          </div>
         </div>
       </MainLayout>
     )
@@ -217,9 +207,9 @@ export default function EditInvoicePage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
+      <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex items-center space-x-4">
-          <Link href={`/invoices/${params.id}`}>
+          <Link href="/invoices">
             <Button variant="outline" size="sm">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Geri
@@ -227,105 +217,93 @@ export default function EditInvoicePage() {
           </Link>
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-              Fatura Düzenle: {invoice.number}
+              Fatura Düzenle
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
-              Fatura bilgilerini güncelleyin
+              {invoice.number} numaralı faturayı düzenleyin
             </p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Müşteri Seçimi */}
+          {/* Fatura Bilgileri */}
           <Card>
             <CardHeader>
-              <CardTitle>Müşteri Bilgileri</CardTitle>
+              <CardTitle>Fatura Bilgileri</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="client">Müşteri</Label>
-                <select
-                  id="client"
-                  className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
-                  value={form.clientId}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, clientId: e.target.value }))
-                  }
-                  required
-                >
-                  <option value="">Müşteri seçiniz...</option>
-                  {clients.map((client) => (
-                    <option key={client.id} value={client.id}>
-                      {client.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Fatura Detayları */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Fatura Detayları</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="issueDate">Fatura Tarihi</Label>
+                  <Label htmlFor="clientId">Müşteri *</Label>
+                  <Select
+                    value={formData.clientId}
+                    onValueChange={(value) => setFormData({ ...formData, clientId: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Müşteri seçiniz" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clients.map((client) => (
+                        <SelectItem key={client.id} value={client.id}>
+                          {client.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="status">Durum</Label>
+                  <Select
+                    value={formData.status}
+                    onValueChange={(value: any) => setFormData({ ...formData, status: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="DRAFT">Taslak</SelectItem>
+                      <SelectItem value="SENT">Gönderildi</SelectItem>
+                      <SelectItem value="PAID">Ödendi</SelectItem>
+                      <SelectItem value="OVERDUE">Gecikmiş</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="issueDate">Fatura Tarihi *</Label>
                   <Input
                     id="issueDate"
                     type="date"
-                    value={form.issueDate}
-                    onChange={(e) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        issueDate: e.target.value,
-                      }))
-                    }
+                    value={formData.issueDate}
+                    onChange={(e) => setFormData({ ...formData, issueDate: e.target.value })}
                     required
                   />
                 </div>
+
                 <div>
-                  <Label htmlFor="dueDate">Vade Tarihi</Label>
+                  <Label htmlFor="dueDate">Vade Tarihi *</Label>
                   <Input
                     id="dueDate"
                     type="date"
-                    value={form.dueDate}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, dueDate: e.target.value }))
-                    }
+                    value={formData.dueDate}
+                    onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
                     required
                   />
                 </div>
-                <div>
-                  <Label htmlFor="status">Durum</Label>
-                  <select
-                    id="status"
-                    className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
-                    value={form.status}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, status: e.target.value }))
-                    }
-                  >
-                    <option value="DRAFT">Taslak</option>
-                    <option value="SENT">Gönderildi</option>
-                    <option value="PAID">Ödendi</option>
-                    <option value="OVERDUE">Gecikmiş</option>
-                  </select>
-                </div>
               </div>
+
               <div>
                 <Label htmlFor="notes">Notlar</Label>
                 <textarea
                   id="notes"
                   className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
                   rows={3}
-                  value={form.notes}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, notes: e.target.value }))
-                  }
-                  placeholder="Fatura ile ilgili notlar..."
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  placeholder="Fatura notları (opsiyonel)"
                 />
               </div>
             </CardContent>
@@ -343,86 +321,78 @@ export default function EditInvoicePage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {form.items.map((item, index) => (
-                  <div
-                    key={index}
-                    className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg"
-                  >
-                    <div className="md:col-span-2">
-                      <Label htmlFor={`description-${index}`}>Açıklama</Label>
-                      <Input
-                        id={`description-${index}`}
-                        value={item.description}
-                        onChange={(e) =>
-                          handleItemChange(index, 'description', e.target.value)
-                        }
-                        placeholder="Ürün/hizmet açıklaması"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor={`quantity-${index}`}>Miktar</Label>
-                      <Input
-                        id={`quantity-${index}`}
-                        type="number"
-                        min="1"
-                        value={item.quantity}
-                        onChange={(e) =>
-                          handleItemChange(
-                            index,
-                            'quantity',
-                            parseInt(e.target.value) || 1
-                          )
-                        }
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor={`price-${index}`}>Birim Fiyat (₺)</Label>
-                      <Input
-                        id={`price-${index}`}
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={item.price}
-                        onChange={(e) =>
-                          handleItemChange(
-                            index,
-                            'price',
-                            parseFloat(e.target.value) || 0
-                          )
-                        }
-                        required
-                      />
-                    </div>
-                    <div className="flex items-end">
-                      <div className="flex-1">
-                        <Label>Toplam</Label>
-                        <div className="mt-1 p-2 bg-gray-100 dark:bg-gray-800 rounded-md text-right font-medium">
-                          ₺{(item.quantity * item.price).toFixed(2)}
-                        </div>
+              {formData.items.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  Henüz kalem eklenmemiş. Kalem eklemek için yukarıdaki butona tıklayın.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {formData.items.map((item, index) => (
+                    <div key={index} className="grid grid-cols-12 gap-4 items-end">
+                      <div className="col-span-5">
+                        <Label>Açıklama *</Label>
+                        <Input
+                          value={item.description}
+                          onChange={(e) => updateItem(index, 'description', e.target.value)}
+                          placeholder="Kalem açıklaması"
+                          required
+                        />
                       </div>
-                      {form.items.length > 1 && (
+                      <div className="col-span-2">
+                        <Label>Miktar *</Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={item.quantity}
+                          onChange={(e) => updateItem(index, 'quantity', parseFloat(e.target.value) || 0)}
+                          required
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <Label>Birim Fiyat *</Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={item.unitPrice}
+                          onChange={(e) => updateItem(index, 'unitPrice', parseFloat(e.target.value) || 0)}
+                          required
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <Label>Toplam</Label>
+                        <Input
+                          value={item.total.toFixed(2)}
+                          disabled
+                          className="bg-gray-50 dark:bg-gray-800"
+                        />
+                      </div>
+                      <div className="col-span-1">
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
                           onClick={() => removeItem(index)}
-                          className="ml-2"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
-                      )}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-              <div className="mt-6 flex justify-end">
+          {/* Toplam */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex justify-end">
                 <div className="text-right">
-                  <div className="text-lg font-semibold">
-                    Genel Toplam: ₺{calculateTotal().toFixed(2)}
+                  <div className="text-2xl font-bold">
+                    Toplam: ₺{calculateTotal().toFixed(2)}
                   </div>
                 </div>
               </div>
@@ -431,14 +401,14 @@ export default function EditInvoicePage() {
 
           {/* Submit Buttons */}
           <div className="flex justify-end space-x-4">
-            <Link href={`/invoices/${params.id}`}>
+            <Link href="/invoices">
               <Button type="button" variant="outline">
                 İptal
               </Button>
             </Link>
-            <Button type="submit" disabled={saving}>
+            <Button type="submit" disabled={loading || formData.items.length === 0}>
               <Save className="h-4 w-4 mr-2" />
-              {saving ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}
+              {loading ? 'Güncelleniyor...' : 'Değişiklikleri Kaydet'}
             </Button>
           </div>
         </form>

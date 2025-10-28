@@ -51,7 +51,6 @@ export default function EditInvoicePage() {
     clientId: '',
     issueDate: '',
     dueDate: '',
-    status: 'UNPAID' as 'UNPAID' | 'PAID' | 'OVERDUE',
     notes: '',
     items: [] as InvoiceItem[],
   })
@@ -75,7 +74,6 @@ export default function EditInvoicePage() {
           clientId: data.clientId,
           issueDate: new Date(data.issueDate).toISOString().split('T')[0],
           dueDate: new Date(data.dueDate).toISOString().split('T')[0],
-          status: data.status,
           notes: data.notes || '',
           items: data.items.map((item: any) => ({
             id: item.id,
@@ -170,7 +168,6 @@ export default function EditInvoicePage() {
           clientId: formData.clientId,
           issueDate: formData.issueDate,
           dueDate: formData.dueDate,
-          status: formData.status,
           notes: formData.notes,
           items: formData.items.map(item => ({
             description: item.description,
@@ -232,7 +229,7 @@ export default function EditInvoicePage() {
               <CardTitle>Fatura Bilgileri</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div>
                   <Label htmlFor="clientId">Müşteri *</Label>
                   <Select
@@ -248,23 +245,6 @@ export default function EditInvoicePage() {
                           {client.name}
                         </SelectItem>
                       ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="status">Durum</Label>
-                  <Select
-                    value={formData.status}
-                    onValueChange={(value: any) => setFormData({ ...formData, status: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="UNPAID">Ödenmemiş</SelectItem>
-                      <SelectItem value="PAID">Ödenmiş</SelectItem>
-                      <SelectItem value="OVERDUE">Gecikmiş</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

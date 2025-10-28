@@ -14,16 +14,32 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const invoice = await prisma.invoice.findUnique({
-      where: { 
-        id: params.id,
-        userId: session.user.id, // Sadece kullanıcının kendi faturalarını görebilir
-      },
-      include: {
-        client: true,
-        items: true,
-      }
-    })
+    let invoice
+    
+    // Süperadmin tüm faturaları görebilir
+    if (session.user.role === 'SUPERADMIN') {
+      invoice = await prisma.invoice.findUnique({
+        where: { 
+          id: params.id,
+        },
+        include: {
+          client: true,
+          items: true,
+        }
+      })
+    } else {
+      // Admin ve User sadece kendi şirketinin faturalarını görebilir
+      invoice = await prisma.invoice.findUnique({
+        where: { 
+          id: params.id,
+          companyId: session.user.companyId,
+        },
+        include: {
+          client: true,
+          items: true,
+        }
+      })
+    }
 
     if (!invoice) {
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
@@ -77,11 +93,12 @@ export async function PUT(
         })
 
         // Invoice'ı güncelle ve yeni item'ları ekle
+        const whereClause = session.user.role === 'SUPERADMIN' 
+          ? { id: params.id }
+          : { id: params.id, companyId: session.user.companyId }
+        
         const updatedInvoice = await tx.invoice.update({
-          where: { 
-            id: params.id,
-            userId: session.user.id,
-          },
+          where: whereClause,
           data: {
             clientId,
             issueDate: new Date(issueDate),
@@ -106,11 +123,12 @@ export async function PUT(
         })
 
         // İlgili transaction'ı güncelle
+        const transactionWhereClause = session.user.role === 'SUPERADMIN'
+          ? { invoiceId: params.id }
+          : { invoiceId: params.id, companyId: session.user.companyId }
+        
         await tx.transaction.updateMany({
-          where: { 
-            invoiceId: params.id,
-            userId: session.user.id,
-          },
+          where: transactionWhereClause,
           data: {
             amount: totalAmount,
             description: `${client?.name || 'Tedarikçi'} - Fatura No: ${updatedInvoice.number}`,
@@ -126,11 +144,12 @@ export async function PUT(
       // Sadece durum güncellemesi - transaction'a dokunma
       const { status, notes } = body
 
+      const whereClause = session.user.role === 'SUPERADMIN' 
+        ? { id: params.id }
+        : { id: params.id, companyId: session.user.companyId }
+      
       const invoice = await prisma.invoice.update({
-        where: { 
-          id: params.id,
-          userId: session.user.id,
-        },
+        where: whereClause,
         data: {
           status,
           notes,
@@ -166,20 +185,22 @@ export async function DELETE(
 
     // Transaction içinde fatura ve ilgili transaction'ı sil
     await prisma.$transaction(async (tx) => {
+      const whereClause = session.user.role === 'SUPERADMIN' 
+        ? { id: params.id }
+        : { id: params.id, companyId: session.user.companyId }
+      
+      const transactionWhereClause = session.user.role === 'SUPERADMIN'
+        ? { invoiceId: params.id }
+        : { invoiceId: params.id, companyId: session.user.companyId }
+      
       // İlgili transaction'ları sil
       await tx.transaction.deleteMany({
-        where: { 
-          invoiceId: params.id,
-          userId: session.user.id,
-        }
+        where: transactionWhereClause
       })
 
       // Faturayı sil
       await tx.invoice.delete({
-        where: { 
-          id: params.id,
-          userId: session.user.id,
-        }
+        where: whereClause
       })
     })
 

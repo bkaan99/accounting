@@ -56,7 +56,7 @@ interface Invoice {
   subtotal: number
   taxAmount: number
   notes?: string
-  clientInfo: Client
+  client: Client
   items: InvoiceItem[]
   createdAt: string
   updatedAt: string
@@ -311,21 +311,21 @@ export default function InvoiceDetailPage() {
               <CardContent>
                 <div className="space-y-2">
                   <h3 className="text-lg font-semibold">
-                    {invoice.clientInfo.name}
+                    {invoice.client.name}
                   </h3>
-                  {invoice.clientInfo.email && (
+                  {invoice.client.email && (
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      📧 {invoice.clientInfo.email}
+                      📧 {invoice.client.email}
                     </p>
                   )}
-                  {invoice.clientInfo.phone && (
+                  {invoice.client.phone && (
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      📞 {invoice.clientInfo.phone}
+                      📞 {invoice.client.phone}
                     </p>
                   )}
-                  {invoice.clientInfo.address && (
+                  {invoice.client.address && (
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      📍 {invoice.clientInfo.address}
+                      📍 {invoice.client.address}
                     </p>
                   )}
                 </div>

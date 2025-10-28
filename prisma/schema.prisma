@@ -37,6 +37,27 @@ model Session {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+// Şirketler - Ana organizasyonlar (rol yok)
+model Company {
+  id            String   @id @default(cuid())
+  name          String
+  taxId         String?   @unique
+  address       String?
+  phone         String?
+  email         String?
+  website       String?
+  logo          String?   // Şirket logosu URL'i
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // İlişkiler
+  users         User[]         // Şirkete bağlı kullanıcılar
+  clients       Client[]       // Şirketin müşterileri
+  invoices      Invoice[]      // Şirketin faturaları
+  transactions  Transaction[]   // Şirketin işlemleri
+}
+
+// Kullanıcılar - Kişiler (şirketlere bağlı, rolleri var)
 model User {
   id             String    @id @default(cuid())
   name           String?
@@ -44,22 +65,20 @@ model User {
   password       String
   emailVerified  DateTime?
   image          String?
-  company        String?
-  companyLogo    String?   // Şirket logosu URL'i
-  taxId          String?
-  companyAddress String?
-  website        String?
   phone          String?
   address        String?
   role           String    @default("USER") // USER, ADMIN, SUPERADMIN
+  companyId      String?   // Şirkete bağlı (SUPERADMIN için null olabilir)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  accounts     Account[]
-  sessions     Session[]
-  clients      Client[]
-  invoices     Invoice[]
-  transactions Transaction[]
+  // İlişkiler
+  accounts       Account[]
+  sessions       Session[]
+  company        Company?  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  clients        Client[]  // Kullanıcının müşterileri
+  invoices       Invoice[] // Kullanıcının faturaları
+  transactions   Transaction[] // Kullanıcının işlemleri
 }
 
 model VerificationToken {
@@ -70,27 +89,33 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+// Müşteriler - Şirketlere bağlı
 model Client {
-  id      String  @id @default(cuid())
-  name    String
-  email   String?
-  phone   String?
-  address String?
-  taxId   String?
-  userId  String
+  id        String  @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  address   String?
+  taxId     String?
+  companyId String  // Şirkete bağlı
+  userId    String  // Hangi kullanıcı tarafından oluşturuldu
 
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  invoices Invoice[]
+  // İlişkiler
+  company   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invoices  Invoice[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
+// Faturalar - Hem kullanıcıya hem şirkete bağlı
 model Invoice {
   id          String   @id @default(cuid())
   number      String   @unique
   clientId    String
-  userId      String
+  userId      String   // Hangi kullanıcı oluşturdu
+  companyId   String   // Hangi şirkete ait
   issueDate   DateTime @default(now())
   dueDate     DateTime
   status      String   @default("DRAFT") // DRAFT, SENT, PAID, OVERDUE
@@ -99,9 +124,11 @@ model Invoice {
   totalAmount Float    @default(0)
   notes       String?
 
-  client User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  clientInfo Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  items  InvoiceItem[]
+  // İlişkiler
+  client      Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company     Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  items       InvoiceItem[]
   transactions Transaction[]
 
   createdAt DateTime @default(now())
@@ -122,18 +149,22 @@ model InvoiceItem {
   updatedAt DateTime @updatedAt
 }
 
+// İşlemler - Hem kullanıcıya hem şirkete bağlı
 model Transaction {
   id          String   @id @default(cuid())
-  userId      String
+  userId      String   // Hangi kullanıcı oluşturdu
+  companyId   String   // Hangi şirkete ait
   type        String   // INCOME, EXPENSE
   category    String
   amount      Float
   description String?
   date        DateTime @default(now())
-  invoiceId   String?
+  invoiceId   String?  // Fatura ile ilişkili mi?
   
-  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  invoice Invoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  // İlişkiler
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company     Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  invoice     Invoice?  @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

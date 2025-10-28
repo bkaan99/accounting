@@ -12,12 +12,48 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 })
     }
 
-    const clients = await prisma.client.findMany({
-      where: { userId: session.user.id },
-      orderBy: { createdAt: 'desc' },
-    })
+    // Süperadmin tüm müşterileri görebilir
+    if (session.user.role === 'SUPERADMIN') {
+      const clients = await prisma.client.findMany({
+        include: {
+          company: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          user: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      })
 
-    return NextResponse.json(clients)
+      return NextResponse.json(clients)
+    }
+
+    // Admin ve User sadece kendi şirketinin müşterilerini görebilir
+    if (session.user.companyId) {
+      const clients = await prisma.client.findMany({
+        where: { companyId: session.user.companyId },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+
+      return NextResponse.json(clients)
+    }
+
+    return NextResponse.json([])
   } catch (error) {
     console.error('Müşteriler alınırken hata:', error)
     return NextResponse.json(
@@ -38,10 +74,19 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const validatedData = ClientSchema.parse(body)
 
+    // Kullanıcının şirketi yoksa müşteri oluşturamaz
+    if (!session.user.companyId) {
+      return NextResponse.json(
+        { error: 'Şirket bilgisi bulunamadı' },
+        { status: 400 }
+      )
+    }
+
     const client = await prisma.client.create({
       data: {
         ...validatedData,
         userId: session.user.id,
+        companyId: session.user.companyId,
       },
     })
 

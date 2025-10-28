@@ -36,7 +36,7 @@ interface Invoice {
   status: string
   totalAmount: number
   notes?: string
-  clientInfo: Client
+  client: Client
   items: InvoiceItem[]
 }
 

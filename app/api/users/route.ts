@@ -13,14 +13,14 @@ export async function GET() {
 
     const users = await prisma.user.findMany({
       orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        company: true,
-        phone: true,
-        role: true,
-        createdAt: true,
+      include: {
+        company: {
+          select: {
+            id: true,
+            name: true,
+            taxId: true,
+          },
+        },
         _count: {
           select: {
             clients: true,
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 })
     }
 
-    const { name, email, company, phone, role } = await request.json()
+    const { name, email, phone, address, role, companyId } = await request.json()
 
     // Email benzersizliği kontrolü
     const existingUser = await prisma.user.findUnique({
@@ -73,18 +73,19 @@ export async function POST(request: Request) {
         name,
         email,
         password: hashedPassword,
-        company,
         phone,
+        address,
         role,
+        companyId,
       },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        company: true,
-        phone: true,
-        role: true,
-        createdAt: true,
+      include: {
+        company: {
+          select: {
+            id: true,
+            name: true,
+            taxId: true,
+          },
+        },
         _count: {
           select: {
             clients: true,

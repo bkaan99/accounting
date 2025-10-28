@@ -47,7 +47,7 @@ interface Invoice {
   dueDate: string
   totalAmount: number
   status: 'DRAFT' | 'SENT' | 'PAID' | 'OVERDUE'
-  clientInfo: ClientInfo
+  client: Client
   items: InvoiceItem[]
   notes?: string
   createdAt: string
@@ -110,8 +110,8 @@ export default function InvoicesPage() {
     return invoices.map((invoice: Invoice) => ({
       id: invoice.id,
       invoiceNumber: invoice.number,
-      clientName: invoice.clientInfo.name,
-      clientEmail: invoice.clientInfo.email,
+      clientName: invoice.client.name,
+      clientEmail: invoice.client.email,
       amount: invoice.totalAmount,
       status: invoice.status,
       date: invoice.issueDate,
@@ -365,7 +365,7 @@ export default function InvoicesPage() {
                       <TableCell className="font-medium">
                         {invoice.number}
                       </TableCell>
-                      <TableCell>{invoice.clientInfo.name}</TableCell>
+                      <TableCell>{invoice.client.name}</TableCell>
                       <TableCell>{formatDate(invoice.issueDate)}</TableCell>
                       <TableCell>{formatDate(invoice.dueDate)}</TableCell>
                       <TableCell className="font-medium">

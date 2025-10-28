@@ -77,6 +77,12 @@ const getUserMenuItems = (userRole?: string) => {
           gradient: 'from-indigo-500 to-blue-500',
         },
         {
+          title: 'Şirketler',
+          href: '/admin/companies',
+          icon: Building2,
+          gradient: 'from-green-500 to-emerald-500',
+        },
+        {
           title: 'Global İstatistikler',
           href: '/admin/stats',
           icon: BarChart3,

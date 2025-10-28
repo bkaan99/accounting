@@ -26,13 +26,27 @@ export const authOptions: NextAuthOptions = {
           where: {
             email: credentials.email,
           },
+          include: {
+            company: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
           select: {
             id: true,
             email: true,
             password: true,
             name: true,
-            company: true,
+            companyId: true,
             role: true,
+            company: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
         })
 
@@ -53,7 +67,8 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           email: user.email,
           name: user.name || '',
-          company: user.company || '',
+          company: user.company?.name || '',
+          companyId: user.companyId || '',
           role: user.role,
         }
       },
@@ -66,6 +81,7 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user, trigger }) {
       if (user) {
         token.company = user.company
+        token.companyId = user.companyId
         token.role = user.role
       }
       
@@ -73,19 +89,34 @@ export const authOptions: NextAuthOptions = {
       if (trigger === 'update' && token.sub) {
         const freshUser = await prisma.user.findUnique({
           where: { id: token.sub },
+          include: {
+            company: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
           select: {
             id: true,
             name: true,
             email: true,
-            company: true,
+            companyId: true,
             role: true,
+            company: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
         })
         
         if (freshUser) {
           token.name = freshUser.name || ''
           token.email = freshUser.email
-          token.company = freshUser.company || ''
+          token.company = freshUser.company?.name || ''
+          token.companyId = freshUser.companyId || ''
           token.role = freshUser.role
         }
       }
@@ -98,6 +129,7 @@ export const authOptions: NextAuthOptions = {
         session.user.name = token.name as string
         session.user.email = token.email as string
         session.user.company = token.company as string
+        session.user.companyId = token.companyId as string
         session.user.role = token.role as string
       }
       return session

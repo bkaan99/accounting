@@ -14,7 +14,9 @@ import {
   Clock,
 } from 'lucide-react'
 
-async function getDashboardData(userId: string) {
+async function getDashboardData(userId: string, companyId?: string) {
+  const whereClause = companyId ? { companyId } : { userId }
+  
   const [
     totalIncome,
     totalExpenses,
@@ -24,27 +26,27 @@ async function getDashboardData(userId: string) {
     recentInvoices,
   ] = await Promise.all([
     prisma.transaction.aggregate({
-      where: { userId, type: 'INCOME' },
+      where: { ...whereClause, type: 'INCOME' },
       _sum: { amount: true },
     }),
     prisma.transaction.aggregate({
-      where: { userId, type: 'EXPENSE' },
+      where: { ...whereClause, type: 'EXPENSE' },
       _sum: { amount: true },
     }),
     prisma.invoice.count({
-      where: { userId },
+      where: whereClause,
     }),
     prisma.client.count({
-      where: { userId },
+      where: whereClause,
     }),
     prisma.transaction.findMany({
-      where: { userId },
+      where: whereClause,
       orderBy: { createdAt: 'desc' },
       take: 5,
     }),
     prisma.invoice.findMany({
-      where: { userId },
-      include: { clientInfo: true },
+      where: whereClause,
+      include: { client: true },
       orderBy: { createdAt: 'desc' },
       take: 5,
     }),
@@ -67,7 +69,7 @@ export default async function DashboardPage() {
     redirect('/login')
   }
 
-  const dashboardData = await getDashboardData(session.user.id)
+  const dashboardData = await getDashboardData(session.user.id, session.user.companyId)
   const profit = dashboardData.totalIncome - dashboardData.totalExpenses
 
   // Calculate uptime (assuming app started when this process started)
@@ -246,7 +248,7 @@ export default async function DashboardPage() {
                       <div>
                         <p className="font-medium">{invoice.number}</p>
                         <p className="text-sm text-gray-600">
-                          {invoice.clientInfo.name}
+                          {invoice.client.name}
                         </p>
                         <p className="text-xs text-gray-500">
                           {formatDate(invoice.dueDate)}

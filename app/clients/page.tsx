@@ -174,23 +174,23 @@ export default function ClientsPage() {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Müşteriler</h1>
-            <p className="text-gray-600">Müşteri bilgilerinizi yönetin</p>
+            <h1 className="text-3xl font-bold text-gray-900">Şirket Carileri</h1>
+            <p className="text-gray-600">Şirketinizin müşterilerini (carilerini) yönetin</p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button className="flex items-center space-x-2">
                 <Plus className="h-4 w-4" />
-                <span>Yeni Müşteri</span>
+                <span>Yeni Cari</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
                 <DialogTitle>
-                  {editingClient ? 'Müşteri Düzenle' : 'Yeni Müşteri'}
+                  {editingClient ? 'Cari Düzenle' : 'Yeni Cari'}
                 </DialogTitle>
                 <DialogDescription>
-                  Müşteri bilgilerini girin ve kaydedin.
+                  Cari bilgilerini girin ve kaydedin.
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit}>
@@ -283,7 +283,7 @@ export default function ClientsPage() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="Müşteri ara..."
+                  placeholder="Cari ara..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -298,7 +298,7 @@ export default function ClientsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Müşteri Adı</TableHead>
+                    <TableHead>Cari Adı</TableHead>
                     <TableHead>İletişim</TableHead>
                     <TableHead>Adres</TableHead>
                     <TableHead>Vergi No</TableHead>
@@ -310,8 +310,8 @@ export default function ClientsPage() {
                     <TableRow>
                       <TableCell colSpan={5} className="text-center py-8">
                         {searchTerm
-                          ? 'Arama kriterinize uygun müşteri bulunamadı'
-                          : 'Henüz müşteri eklenmemiş'}
+                          ? 'Arama kriterinize uygun cari bulunamadı'
+                          : 'Henüz cari eklenmemiş'}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -355,8 +355,8 @@ export default function ClientsPage() {
                               <Edit className="h-4 w-4" />
                             </Button>
                             <ConfirmDialog
-                              title="Müşteri Sil"
-                              description={`"${client.name}" isimli müşteriyi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`}
+                              title="Cari Sil"
+                              description={`"${client.name}" isimli cariyi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`}
                               confirmText="Sil"
                               cancelText="İptal"
                               onConfirm={() => handleDelete(client.id)}

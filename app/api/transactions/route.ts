@@ -11,25 +11,70 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const transactions = await prisma.transaction.findMany({
-      where: { userId: session.user.id },
-      include: {
-        invoice: {
-          select: {
-            id: true,
-            number: true,
-            clientInfo: {
-              select: {
-                name: true
+    // Süperadmin tüm işlemleri görebilir
+    if (session.user.role === 'SUPERADMIN') {
+      const transactions = await prisma.transaction.findMany({
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          company: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          invoice: {
+            select: {
+              id: true,
+              number: true,
+              client: {
+                select: {
+                  name: true
+                }
               }
             }
           }
-        }
-      },
-      orderBy: { date: 'desc' },
-    })
+        },
+        orderBy: { date: 'desc' },
+      })
 
-    return NextResponse.json(transactions)
+      return NextResponse.json(transactions)
+    }
+
+    // Admin ve User sadece kendi şirketinin işlemlerini görebilir
+    if (session.user.companyId) {
+      const transactions = await prisma.transaction.findMany({
+        where: { companyId: session.user.companyId },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          invoice: {
+            select: {
+              id: true,
+              number: true,
+              client: {
+                select: {
+                  name: true
+                }
+              }
+            }
+          }
+        },
+        orderBy: { date: 'desc' },
+      })
+
+      return NextResponse.json(transactions)
+    }
+
+    return NextResponse.json([])
   } catch (error) {
     console.error('Transaction fetch error:', error)
     return NextResponse.json(
@@ -72,9 +117,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Kullanıcının şirketi yoksa işlem oluşturamaz
+    if (!session.user.companyId) {
+      return NextResponse.json(
+        { error: 'Şirket bilgisi bulunamadı' },
+        { status: 400 }
+      )
+    }
+
     const transaction = await prisma.transaction.create({
       data: {
         userId: session.user.id,
+        companyId: session.user.companyId,
         type,
         category,
         amount: parseFloat(amount),

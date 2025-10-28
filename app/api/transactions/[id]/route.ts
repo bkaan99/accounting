@@ -220,6 +220,19 @@ export async function DELETE(
         })
       }
 
+      // Eğer işlem bir faturaya bağlıysa, faturayı da sil
+      if (existingTransaction.invoiceId) {
+        // Önce fatura item'larını sil
+        await tx.invoiceItem.deleteMany({
+          where: { invoiceId: existingTransaction.invoiceId }
+        })
+        
+        // Sonra faturayı sil
+        await tx.invoice.delete({
+          where: { id: existingTransaction.invoiceId }
+        })
+      }
+
       // İşlemi sil
       await tx.transaction.delete({
         where: { id: params.id }

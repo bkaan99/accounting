@@ -10,16 +10,17 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 interface TransactionActionsProps {
   transactionId: string
+  hasInvoice?: boolean
   onDelete?: () => void | Promise<void>
 }
 
-export function TransactionActions({ transactionId, onDelete }: TransactionActionsProps) {
+export function TransactionActions({ transactionId, hasInvoice = false, onDelete }: TransactionActionsProps) {
   const router = useRouter()
   const [isDeleting, setIsDeleting] = useState(false)
 
   const handleDelete = async (): Promise<boolean> => {
     setIsDeleting(true)
-    const loadingToastId = toast.loading('İşlem siliniyor...')
+    const loadingToastId = toast.loading(hasInvoice ? 'İşlem ve fatura siliniyor...' : 'İşlem siliniyor...')
     
     try {
       const response = await fetch(`/api/transactions/${transactionId}`, {
@@ -27,7 +28,7 @@ export function TransactionActions({ transactionId, onDelete }: TransactionActio
       })
 
       if (response.ok) {
-        toast.success_update(loadingToastId, 'İşlem başarıyla silindi!')
+        toast.success_update(loadingToastId, hasInvoice ? 'İşlem ve fatura başarıyla silindi!' : 'İşlem başarıyla silindi!')
         
         // Parent component'ten gelen onDelete callback'i çağır
         if (onDelete) {
@@ -61,7 +62,10 @@ export function TransactionActions({ transactionId, onDelete }: TransactionActio
       </Link>
       <ConfirmDialog
         title="İşlem Sil"
-        description="Bu işlemi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz."
+        description={hasInvoice 
+          ? "Bu işlem bir faturaya bağlıdır. İşlemi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz ve ilgili fatura da silinecektir."
+          : "Bu işlemi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz."
+        }
         confirmText="Sil"
         cancelText="İptal"
         onConfirm={handleDelete}

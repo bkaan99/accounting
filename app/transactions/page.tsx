@@ -329,7 +329,8 @@ export default function TransactionsPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <TransactionActions 
-                          transactionId={transaction.id} 
+                          transactionId={transaction.id}
+                          hasInvoice={!!transaction.invoice}
                           onDelete={fetchTransactions}
                         />
                       </TableCell>

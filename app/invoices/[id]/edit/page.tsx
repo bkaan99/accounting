@@ -34,7 +34,7 @@ interface Invoice {
   number: string
   issueDate: string
   dueDate: string
-  status: 'DRAFT' | 'SENT' | 'PAID' | 'OVERDUE'
+  status: 'UNPAID' | 'PAID' | 'OVERDUE'
   notes?: string
   client: Client
   items: InvoiceItem[]
@@ -51,7 +51,7 @@ export default function EditInvoicePage() {
     clientId: '',
     issueDate: '',
     dueDate: '',
-    status: 'DRAFT' as 'DRAFT' | 'SENT' | 'PAID' | 'OVERDUE',
+    status: 'UNPAID' as 'UNPAID' | 'PAID' | 'OVERDUE',
     notes: '',
     items: [] as InvoiceItem[],
   })
@@ -262,9 +262,8 @@ export default function EditInvoicePage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="DRAFT">Taslak</SelectItem>
-                      <SelectItem value="SENT">Gönderildi</SelectItem>
-                      <SelectItem value="PAID">Ödendi</SelectItem>
+                      <SelectItem value="UNPAID">Ödenmemiş</SelectItem>
+                      <SelectItem value="PAID">Ödenmiş</SelectItem>
                       <SelectItem value="OVERDUE">Gecikmiş</SelectItem>
                     </SelectContent>
                   </Select>

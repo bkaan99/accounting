@@ -13,7 +13,7 @@ interface Invoice {
   clientName: string
   clientEmail: string
   amount: number
-  status: 'DRAFT' | 'SENT' | 'PAID' | 'OVERDUE'
+  status: 'UNPAID' | 'PAID' | 'OVERDUE'
   date: string
   dueDate: string
   createdAt: string
@@ -22,7 +22,7 @@ interface Invoice {
 
 interface Filters {
   client: string
-  status: 'ALL' | 'DRAFT' | 'SENT' | 'PAID' | 'OVERDUE'
+  status: 'ALL' | 'UNPAID' | 'PAID' | 'OVERDUE'
   dateFrom: string
   dateTo: string
   dueDateFrom: string
@@ -40,19 +40,15 @@ interface InvoiceFiltersProps {
 
 const statusLabels = {
   ALL: 'Tümü',
-  DRAFT: 'Taslak',
-  SENT: 'Gönderildi',
-  PAID: 'Ödendi',
+  UNPAID: 'Ödenmemiş',
+  PAID: 'Ödenmiş',
   OVERDUE: 'Gecikmiş',
 }
 
 const statusColors = {
-  DRAFT:
-    'text-gray-600 border-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:border-gray-400',
-  SENT: 'text-blue-600 border-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-400',
+  UNPAID: 'text-yellow-600 border-yellow-600 hover:bg-yellow-50 dark:text-yellow-400 dark:border-yellow-400',
   PAID: 'text-green-600 border-green-600 hover:bg-green-50 dark:text-green-400 dark:border-green-400',
-  OVERDUE:
-    'text-red-600 border-red-600 hover:bg-red-50 dark:text-red-400 dark:border-red-400',
+  OVERDUE: 'text-red-600 border-red-600 hover:bg-red-50 dark:text-red-400 dark:border-red-400',
 }
 
 export function InvoiceFilters({
@@ -152,7 +148,7 @@ export function InvoiceFilters({
           <FileText className="h-4 w-4 mr-1" />
           Tümü
         </Button>
-        {(['DRAFT', 'SENT', 'PAID', 'OVERDUE'] as const).map((status) => (
+        {(['UNPAID', 'PAID', 'OVERDUE'] as const).map((status) => (
           <Button
             key={status}
             variant={filters.status === status ? 'default' : 'outline'}

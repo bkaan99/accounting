@@ -19,9 +19,29 @@ import {
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 
-async function getDashboardData(userId: string, companyId?: string) {
-  const whereClause = companyId ? { companyId } : { userId }
+async function getDashboardData(userId: string, companyId?: string, userRole?: string) {
   const now = new Date()
+  
+  // Süperadmin tüm verileri görebilir, diğerleri şirket bazlı
+  const transactionWhere: any = { isDeleted: false }
+  const invoiceWhere: any = { isDeleted: false }
+  const clientWhere: any = {}
+  const cashAccountWhere: any = { isActive: true }
+
+  if (userRole !== 'SUPERADMIN') {
+    if (companyId) {
+      transactionWhere.companyId = companyId
+      invoiceWhere.companyId = companyId
+      clientWhere.companyId = companyId
+      cashAccountWhere.companyId = companyId
+    } else {
+      // Şirketi yoksa boş sonuç döndür
+      transactionWhere.companyId = null
+      invoiceWhere.companyId = null
+      clientWhere.companyId = null
+      cashAccountWhere.companyId = null
+    }
+  }
   
   const [
     totalIncome,
@@ -35,26 +55,26 @@ async function getDashboardData(userId: string, companyId?: string) {
     cashAccounts,
   ] = await Promise.all([
     prisma.transaction.aggregate({
-      where: { ...whereClause, type: 'INCOME' },
+      where: { ...transactionWhere, type: 'INCOME' },
       _sum: { amount: true },
     }),
     prisma.transaction.aggregate({
-      where: { ...whereClause, type: 'EXPENSE' },
+      where: { ...transactionWhere, type: 'EXPENSE' },
       _sum: { amount: true },
     }),
     prisma.invoice.count({
-      where: whereClause,
+      where: invoiceWhere,
     }),
     prisma.client.count({
-      where: whereClause,
+      where: clientWhere,
     }),
     prisma.transaction.findMany({
-      where: whereClause,
+      where: transactionWhere,
       orderBy: { createdAt: 'desc' },
       take: 5,
     }),
     prisma.invoice.findMany({
-      where: whereClause,
+      where: invoiceWhere,
       include: { client: true },
       orderBy: { createdAt: 'desc' },
       take: 5,
@@ -62,10 +82,9 @@ async function getDashboardData(userId: string, companyId?: string) {
     // Gecikmiş faturalar
     prisma.invoice.findMany({
       where: {
-        ...whereClause,
+        ...invoiceWhere,
         status: { in: ['DRAFT', 'SENT', 'UNPAID'] },
         dueDate: { lt: now },
-        isDeleted: false,
       },
       include: { client: true },
       orderBy: { dueDate: 'asc' },
@@ -74,10 +93,9 @@ async function getDashboardData(userId: string, companyId?: string) {
     // Vadesi yaklaşan faturalar (7 gün içinde)
     prisma.invoice.findMany({
       where: {
-        ...whereClause,
+        ...invoiceWhere,
         status: { in: ['DRAFT', 'SENT', 'UNPAID'] },
         dueDate: { gte: now, lte: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) },
-        isDeleted: false,
       },
       include: { client: true },
       orderBy: { dueDate: 'asc' },
@@ -85,10 +103,7 @@ async function getDashboardData(userId: string, companyId?: string) {
     }),
     // Kasa hesapları (düşük bakiye kontrolü için)
     prisma.cashAccount.findMany({
-      where: {
-        ...whereClause,
-        isActive: true,
-      },
+      where: cashAccountWhere,
     }),
   ])
 
@@ -117,7 +132,7 @@ export default async function DashboardPage() {
     redirect('/login')
   }
 
-  const dashboardData = await getDashboardData(session.user.id, session.user.companyId)
+  const dashboardData = await getDashboardData(session.user.id, session.user.companyId, session.user.role)
   const profit = dashboardData.totalIncome - dashboardData.totalExpenses
 
   // Calculate uptime (assuming app started when this process started)

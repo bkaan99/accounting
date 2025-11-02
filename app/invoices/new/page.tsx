@@ -27,12 +27,6 @@ interface InvoiceItem {
 
 interface InvoiceForm {
   clientId: string
-  clientInfo: {
-    name: string
-    email: string
-    phone: string
-    address: string
-  }
   issueDate: string
   dueDate: string
   notes: string
@@ -47,12 +41,6 @@ export default function NewInvoicePage() {
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState<InvoiceForm>({
     clientId: '',
-    clientInfo: {
-      name: '',
-      email: '',
-      phone: '',
-      address: '',
-    },
     issueDate: new Date().toISOString().split('T')[0],
     dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
       .toISOString()
@@ -90,12 +78,6 @@ export default function NewInvoicePage() {
       setForm((prev) => ({
         ...prev,
         clientId: client.id,
-        clientInfo: {
-          name: client.name,
-          email: client.email || '',
-          phone: client.phone || '',
-          address: client.address || '',
-        },
       }))
     }
   }
@@ -141,15 +123,12 @@ export default function NewInvoicePage() {
     setLoading(true)
 
     try {
-      // Remove clientInfo from form data since we don't need it for API
-      const { clientInfo, ...invoiceData } = form
-
       const response = await fetch('/api/invoices', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(invoiceData),
+        body: JSON.stringify(form),
       })
 
       if (response.ok) {
@@ -218,71 +197,35 @@ export default function NewInvoicePage() {
               {selectedClient && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                   <div>
-                    <Label htmlFor="clientName">Tedarikçi Adı</Label>
-                    <Input
-                      id="clientName"
-                      value={form.clientInfo.name}
-                      onChange={(e) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          clientInfo: {
-                            ...prev.clientInfo,
-                            name: e.target.value,
-                          },
-                        }))
-                      }
-                      required
-                    />
+                    <Label>Tedarikçi Adı</Label>
+                    <div className="mt-1 p-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md text-gray-900 dark:text-gray-100">
+                      {selectedClient.name}
+                    </div>
                   </div>
-                  <div>
-                    <Label htmlFor="clientEmail">E-posta</Label>
-                    <Input
-                      id="clientEmail"
-                      type="email"
-                      value={form.clientInfo.email}
-                      onChange={(e) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          clientInfo: {
-                            ...prev.clientInfo,
-                            email: e.target.value,
-                          },
-                        }))
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="clientPhone">Telefon</Label>
-                    <Input
-                      id="clientPhone"
-                      value={form.clientInfo.phone}
-                      onChange={(e) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          clientInfo: {
-                            ...prev.clientInfo,
-                            phone: e.target.value,
-                          },
-                        }))
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="clientAddress">Adres</Label>
-                    <Input
-                      id="clientAddress"
-                      value={form.clientInfo.address}
-                      onChange={(e) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          clientInfo: {
-                            ...prev.clientInfo,
-                            address: e.target.value,
-                          },
-                        }))
-                      }
-                    />
-                  </div>
+                  {selectedClient.email && (
+                    <div>
+                      <Label>E-posta</Label>
+                      <div className="mt-1 p-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md text-gray-900 dark:text-gray-100">
+                        {selectedClient.email}
+                      </div>
+                    </div>
+                  )}
+                  {selectedClient.phone && (
+                    <div>
+                      <Label>Telefon</Label>
+                      <div className="mt-1 p-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md text-gray-900 dark:text-gray-100">
+                        {selectedClient.phone}
+                      </div>
+                    </div>
+                  )}
+                  {selectedClient.address && (
+                    <div>
+                      <Label>Adres</Label>
+                      <div className="mt-1 p-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md text-gray-900 dark:text-gray-100">
+                        {selectedClient.address}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>

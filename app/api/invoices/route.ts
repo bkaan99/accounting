@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { invoiceSchema } from '@/lib/validations'
+import { createNotification } from '@/lib/notifications'
 
 export async function GET() {
   try {
@@ -176,6 +177,24 @@ export async function POST(request: NextRequest) {
       })
 
       return newInvoice
+    })
+
+    // Fatura oluşturulduğunda bildirim gönder
+    createNotification({
+      userId: session.user.id,
+      companyId: session.user.companyId,
+      type: 'INVOICE_CREATED',
+      priority: 'LOW',
+      title: 'Yeni Fatura Oluşturuldu',
+      message: `"${invoice.number}" numaralı fatura oluşturuldu. Tutar: ₺${totalAmount.toFixed(2)}`,
+      link: `/invoices/${invoice.id}`,
+      metadata: {
+        invoiceId: invoice.id,
+        invoiceNumber: invoice.number,
+        amount: totalAmount,
+      },
+    }).catch((error) => {
+      console.error('Fatura oluşturuldu bildirimi gönderilirken hata:', error)
     })
 
     return NextResponse.json(invoice, { status: 201 })

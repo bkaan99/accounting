@@ -3,6 +3,7 @@
 import { signOut, useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
+import { NotificationDropdown } from '@/components/notifications/notification-dropdown'
 import { Menu, LogOut, User, Building2 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
@@ -100,6 +101,9 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
           <User className="h-4 w-4" />
           <span>{session?.user?.email}</span>
         </div>
+        {session?.user?.id && (
+          <NotificationDropdown userId={session.user.id} />
+        )}
         <ThemeToggle />
         <Button
           variant="outline"

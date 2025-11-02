@@ -74,12 +74,14 @@ model User {
   updatedAt      DateTime  @updatedAt
 
   // İlişkiler
-  accounts       Account[]
-  sessions       Session[]
-  company        Company?  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  clients        Client[]  // Kullanıcının tedarikçileri
-  invoices       Invoice[] // Kullanıcının faturaları
-  transactions   Transaction[] // Kullanıcının işlemleri
+  accounts              Account[]
+  sessions              Session[]
+  company               Company?              @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  clients               Client[]              // Kullanıcının tedarikçileri
+  invoices              Invoice[]             // Kullanıcının faturaları
+  transactions          Transaction[]         // Kullanıcının işlemleri
+  notifications         Notification[]       // Kullanıcının bildirimleri
+  notificationPreference NotificationPreference? // Bildirim tercihleri
 }
 
 model VerificationToken {
@@ -194,4 +196,70 @@ model Transaction {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-} 
+}
+
+// Bildirimler
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String   // Bildirimi alacak kullanıcı
+  companyId   String?  // Şirket (multi-tenant için)
+  type        String   // Bildirim türü (INVOICE_CREATED, INVOICE_DUE_SOON, etc.)
+  priority    String   @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  title       String
+  message     String
+  link        String?  // Hangi sayfaya yönlendirecek (örn: /invoices/123)
+  isRead      Boolean  @default(false)
+  metadata    String?  // JSON string - Ek bilgiler (invoiceId, transactionId, etc.)
+  
+  // İlişkiler
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  readAt      DateTime?
+  
+  @@index([userId, isRead])
+  @@index([companyId])
+  @@index([createdAt])
+}
+
+// Bildirim Tercihleri
+model NotificationPreference {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  companyId             String?
+  
+  // Fatura Bildirimleri
+  invoiceCreated        Boolean  @default(true)
+  invoiceSent           Boolean  @default(true)
+  invoicePaid           Boolean  @default(true)
+  invoiceDueSoon        Boolean  @default(true)
+  invoiceOverdue         Boolean  @default(true)
+  invoiceStatusChanged   Boolean  @default(true)
+  invoiceEdited          Boolean  @default(false)
+  
+  // İşlem Bildirimleri
+  largeTransaction      Boolean  @default(true)  // Büyük işlemler (varsayılan limit: 10000 TL)
+  largeTransactionLimit Float    @default(10000)
+  lowBalance            Boolean  @default(true)  // Düşük bakiye uyarısı
+  lowBalanceLimit       Float    @default(1000)
+  negativeBalance       Boolean  @default(true)  // Negatif bakiye
+  transactionDeleted    Boolean  @default(true)
+  transactionEdited     Boolean  @default(false)
+  
+  // Sistem Bildirimleri
+  userAdded             Boolean  @default(true)  // Admin için
+  passwordChanged       Boolean  @default(true)
+  suspiciousLogin       Boolean  @default(true)
+  systemUpdate          Boolean  @default(true)
+  
+  // Kullanıcı Aktivite Bildirimleri
+  clientAdded           Boolean  @default(false)
+  bulkTransaction       Boolean  @default(true)
+  reportGenerated       Boolean  @default(false)
+  
+  // İlişkiler
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { createNotification } from '@/lib/notifications'
 
 export async function GET(
   request: NextRequest,
@@ -139,6 +140,22 @@ export async function PUT(
         return updatedInvoice
       })
 
+      // Fatura düzenlendiğinde bildirim gönder
+      await createNotification({
+        userId: session.user.id,
+        companyId: session.user.companyId,
+        type: 'INVOICE_EDITED',
+        priority: 'LOW',
+        title: 'Fatura Düzenlendi',
+        message: `"${invoice.number}" numaralı fatura güncellendi. Yeni tutar: ₺${invoice.totalAmount.toFixed(2)}`,
+        link: `/invoices/${invoice.id}`,
+        metadata: {
+          invoiceId: invoice.id,
+          invoiceNumber: invoice.number,
+          amount: invoice.totalAmount,
+        },
+      })
+
       return NextResponse.json(invoice)
     } else {
       // Sadece durum güncellemesi - transaction'a dokunma
@@ -148,6 +165,15 @@ export async function PUT(
         ? { id: params.id }
         : { id: params.id, companyId: session.user.companyId }
       
+      // Önce eski durumu al
+      const oldInvoice = await prisma.invoice.findUnique({
+        where: whereClause,
+      })
+
+      if (!oldInvoice) {
+        return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
+      }
+
       const invoice = await prisma.invoice.update({
         where: whereClause,
         data: {
@@ -160,6 +186,43 @@ export async function PUT(
           items: true,
         }
       })
+
+      // Durum değiştiyse bildirim gönder
+      if (oldInvoice.status !== status) {
+        let notificationType: 'INVOICE_SENT' | 'INVOICE_PAID' | 'INVOICE_STATUS_CHANGED' = 'INVOICE_STATUS_CHANGED'
+        let priority: 'LOW' | 'MEDIUM' | 'HIGH' = 'MEDIUM'
+        let title = 'Fatura Durumu Değişti'
+        let message = `"${invoice.number}" numaralı faturanın durumu "${oldInvoice.status}" → "${status}" olarak güncellendi.`
+
+        if (status === 'SENT') {
+          notificationType = 'INVOICE_SENT'
+          title = 'Fatura Gönderildi'
+          message = `"${invoice.number}" numaralı fatura gönderildi.`
+          priority = 'MEDIUM'
+        } else if (status === 'PAID') {
+          notificationType = 'INVOICE_PAID'
+          title = 'Fatura Ödendi'
+          message = `"${invoice.number}" numaralı fatura ödendi. Tutar: ₺${invoice.totalAmount.toFixed(2)}`
+          priority = 'HIGH'
+        }
+
+        await createNotification({
+          userId: session.user.id,
+          companyId: session.user.companyId,
+          type: notificationType,
+          priority,
+          title,
+          message,
+          link: `/invoices/${invoice.id}`,
+          metadata: {
+            invoiceId: invoice.id,
+            invoiceNumber: invoice.number,
+            oldStatus: oldInvoice.status,
+            newStatus: status,
+            amount: invoice.totalAmount,
+          },
+        })
+      }
 
       return NextResponse.json(invoice)
     }
@@ -183,12 +246,22 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Önce fatura bilgilerini al (bildirim için)
+    const whereClause = session.user.role === 'SUPERADMIN' 
+      ? { id: params.id }
+      : { id: params.id, companyId: session.user.companyId }
+    
+    const invoice = await prisma.invoice.findUnique({
+      where: whereClause,
+      select: {
+        id: true,
+        number: true,
+        totalAmount: true,
+      },
+    })
+
     // Transaction içinde fatura ve ilgili transaction'ı sil
     await prisma.$transaction(async (tx) => {
-      const whereClause = session.user.role === 'SUPERADMIN' 
-        ? { id: params.id }
-        : { id: params.id, companyId: session.user.companyId }
-      
       const transactionWhereClause = session.user.role === 'SUPERADMIN'
         ? { invoiceId: params.id }
         : { invoiceId: params.id, companyId: session.user.companyId }
@@ -205,6 +278,26 @@ export async function DELETE(
         data: { isDeleted: true }
       })
     })
+
+    // Fatura silindiğinde bildirim gönder (eğer fatura bulunduysa)
+    if (invoice) {
+      await createNotification({
+        userId: session.user.id,
+        companyId: session.user.companyId,
+        type: 'INVOICE_STATUS_CHANGED',
+        priority: 'MEDIUM',
+        title: 'Fatura Silindi',
+        message: `"${invoice.number}" numaralı fatura silindi.`,
+        link: '/invoices',
+        metadata: {
+          invoiceId: invoice.id,
+          invoiceNumber: invoice.number,
+          action: 'deleted',
+        },
+      }).catch((error) => {
+        console.error('Fatura silindi bildirimi gönderilirken hata:', error)
+      })
+    }
 
     return NextResponse.json({ message: 'Invoice deleted successfully' })
   } catch (error) {

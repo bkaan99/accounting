@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { createNotification } from '@/lib/notifications'
 
 export async function GET() {
   try {
@@ -95,6 +96,34 @@ export async function POST(request: Request) {
         },
       },
     })
+
+    // Yeni kullanıcı eklendiğinde admin'lere bildirim gönder
+    const admins = await prisma.user.findMany({
+      where: {
+        role: { in: ['ADMIN', 'SUPERADMIN'] },
+        companyId: companyId || undefined,
+      },
+    })
+
+    await Promise.all(
+      admins.map((admin) =>
+        createNotification({
+          userId: admin.id,
+          companyId: admin.companyId,
+          type: 'USER_ADDED',
+          priority: 'MEDIUM',
+          title: 'Yeni Kullanıcı Eklendi',
+          message: `${name} (${email}) adlı yeni kullanıcı sisteme eklendi.`,
+          link: '/admin/users',
+          metadata: {
+            userId: newUser.id,
+            userName: name,
+            userEmail: email,
+            role,
+          },
+        }).catch((err) => console.error('Yeni kullanıcı bildirimi hatası:', err))
+      )
+    )
 
     return NextResponse.json(newUser)
   } catch (error) {

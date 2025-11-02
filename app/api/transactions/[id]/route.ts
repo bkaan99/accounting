@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { updateInvoiceStatus } from '@/lib/invoice-status'
+import { createNotification } from '@/lib/notifications'
 
 export async function GET(
   request: NextRequest,
@@ -196,6 +197,25 @@ export async function PUT(
       timeout: 10000, // 10 saniye timeout
     })
 
+    // İşlem düzenlendiğinde bildirim gönder (sadece faturaya bağlı değilse)
+    if (!existingTransaction.invoiceId) {
+      createNotification({
+        userId: session.user.id,
+        companyId: session.user.companyId,
+        type: 'TRANSACTION_EDITED',
+        priority: 'LOW',
+        title: 'İşlem Düzenlendi',
+        message: `${transaction.type === 'INCOME' ? 'Gelir' : 'Gider'} işlemi güncellendi. Kategori: ${transaction.category}, Tutar: ₺${transaction.amount.toFixed(2)}`,
+        link: `/transactions`,
+        metadata: {
+          transactionId: transaction.id,
+          type: transaction.type,
+          amount: transaction.amount,
+          category: transaction.category,
+        },
+      }).catch((err) => console.error('İşlem düzenlendi bildirimi hatası:', err))
+    }
+
     return NextResponse.json(transaction)
   } catch (error) {
     console.error('Transaction update error:', error)
@@ -265,6 +285,25 @@ export async function DELETE(
         data: { isDeleted: true }
       })
     })
+
+    // İşlem silindiğinde bildirim gönder
+    if (!existingTransaction.invoiceId) {
+      createNotification({
+        userId: session.user.id,
+        companyId: session.user.companyId,
+        type: 'TRANSACTION_DELETED',
+        priority: 'MEDIUM',
+        title: 'İşlem Silindi',
+        message: `${existingTransaction.type === 'INCOME' ? 'Gelir' : 'Gider'} işlemi silindi. Kategori: ${existingTransaction.category}, Tutar: ₺${existingTransaction.amount.toFixed(2)}`,
+        link: '/transactions',
+        metadata: {
+          transactionId: existingTransaction.id,
+          type: existingTransaction.type,
+          amount: existingTransaction.amount,
+          category: existingTransaction.category,
+        },
+      }).catch((err) => console.error('İşlem silindi bildirimi hatası:', err))
+    }
 
     return NextResponse.json({ message: 'İşlem başarıyla silindi' })
   } catch (error) {

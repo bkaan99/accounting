@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { ClientSchema } from '@/lib/validations'
+import { createNotification } from '@/lib/notifications'
 
 export async function GET(request: NextRequest) {
   try {
@@ -92,6 +93,21 @@ export async function POST(request: NextRequest) {
         companyId: session.user.companyId,
       },
     })
+
+    // Yeni tedarikçi eklendiğinde bildirim gönder (tercih açıksa)
+    createNotification({
+      userId: session.user.id,
+      companyId: session.user.companyId,
+      type: 'CLIENT_ADDED',
+      priority: 'LOW',
+      title: 'Yeni Tedarikçi Eklendi',
+      message: `"${validatedData.name}" adlı tedarikçi sisteme eklendi.`,
+      link: '/clients',
+      metadata: {
+        clientId: client.id,
+        clientName: validatedData.name,
+      },
+    }).catch((err) => console.error('Tedarikçi eklendi bildirimi hatası:', err))
 
     return NextResponse.json(client, { status: 201 })
   } catch (error) {

@@ -12,10 +12,16 @@ import {
   FileText,
   Users,
   Clock,
+  AlertTriangle,
+  AlertCircle,
+  ArrowRight,
 } from 'lucide-react'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
 
 async function getDashboardData(userId: string, companyId?: string) {
   const whereClause = companyId ? { companyId } : { userId }
+  const now = new Date()
   
   const [
     totalIncome,
@@ -24,6 +30,9 @@ async function getDashboardData(userId: string, companyId?: string) {
     totalClients,
     recentTransactions,
     recentInvoices,
+    overdueInvoices,
+    dueSoonInvoices,
+    cashAccounts,
   ] = await Promise.all([
     prisma.transaction.aggregate({
       where: { ...whereClause, type: 'INCOME' },
@@ -50,7 +59,42 @@ async function getDashboardData(userId: string, companyId?: string) {
       orderBy: { createdAt: 'desc' },
       take: 5,
     }),
+    // Gecikmiş faturalar
+    prisma.invoice.findMany({
+      where: {
+        ...whereClause,
+        status: { in: ['DRAFT', 'SENT', 'UNPAID'] },
+        dueDate: { lt: now },
+        isDeleted: false,
+      },
+      include: { client: true },
+      orderBy: { dueDate: 'asc' },
+      take: 5,
+    }),
+    // Vadesi yaklaşan faturalar (7 gün içinde)
+    prisma.invoice.findMany({
+      where: {
+        ...whereClause,
+        status: { in: ['DRAFT', 'SENT', 'UNPAID'] },
+        dueDate: { gte: now, lte: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) },
+        isDeleted: false,
+      },
+      include: { client: true },
+      orderBy: { dueDate: 'asc' },
+      take: 5,
+    }),
+    // Kasa hesapları (düşük bakiye kontrolü için)
+    prisma.cashAccount.findMany({
+      where: {
+        ...whereClause,
+        isActive: true,
+      },
+    }),
   ])
+
+  // Düşük ve negatif bakiyeleri kontrol et
+  const lowBalanceAccounts = cashAccounts.filter((acc: any) => acc.balance < 1000 && acc.balance >= 0)
+  const negativeBalanceAccounts = cashAccounts.filter((acc: any) => acc.balance < 0)
 
   return {
     totalIncome: totalIncome._sum.amount || 0,
@@ -59,6 +103,10 @@ async function getDashboardData(userId: string, companyId?: string) {
     totalClients,
     recentTransactions,
     recentInvoices,
+    overdueInvoices,
+    dueSoonInvoices,
+    lowBalanceAccounts,
+    negativeBalanceAccounts,
   }
 }
 
@@ -183,6 +231,134 @@ export default async function DashboardPage() {
             </Card>
           )}
         </div>
+
+        {/* Kritik Uyarılar Widget */}
+        {(dashboardData.overdueInvoices.length > 0 ||
+          dashboardData.dueSoonInvoices.length > 0 ||
+          dashboardData.negativeBalanceAccounts.length > 0 ||
+          dashboardData.lowBalanceAccounts.length > 0) && (
+          <Card className="border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-900/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-red-700 dark:text-red-400">
+                <AlertTriangle className="h-5 w-5" />
+                Kritik Uyarılar
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Gecikmiş Faturalar */}
+              {dashboardData.overdueInvoices.length > 0 && (
+                <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-lg border border-red-300 dark:border-red-700">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                      <span className="font-semibold text-red-800 dark:text-red-300">
+                        {dashboardData.overdueInvoices.length} Gecikmiş Fatura
+                      </span>
+                    </div>
+                    <Link href="/invoices?filter=overdue">
+                      <Button variant="outline" size="sm" className="text-xs">
+                        Görüntüle <ArrowRight className="h-3 w-3 ml-1" />
+                      </Button>
+                    </Link>
+                  </div>
+                  <div className="text-sm text-red-700 dark:text-red-400">
+                    {dashboardData.overdueInvoices.slice(0, 3).map((invoice: any) => (
+                      <div key={invoice.id} className="flex items-center justify-between py-1">
+                        <span>{invoice.number}</span>
+                        <span className="font-medium">{formatCurrency(invoice.totalAmount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Vadesi Yaklaşan Faturalar */}
+              {dashboardData.dueSoonInvoices.length > 0 && (
+                <div className="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-lg border border-orange-300 dark:border-orange-700">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                      <span className="font-semibold text-orange-800 dark:text-orange-300">
+                        {dashboardData.dueSoonInvoices.length} Fatura Vadesi Yaklaşıyor
+                      </span>
+                    </div>
+                    <Link href="/invoices">
+                      <Button variant="outline" size="sm" className="text-xs">
+                        Görüntüle <ArrowRight className="h-3 w-3 ml-1" />
+                      </Button>
+                    </Link>
+                  </div>
+                  <div className="text-sm text-orange-700 dark:text-orange-400">
+                    {dashboardData.dueSoonInvoices.slice(0, 3).map((invoice: any) => (
+                      <div key={invoice.id} className="flex items-center justify-between py-1">
+                        <span>
+                          {invoice.number} - {formatDate(invoice.dueDate)}
+                        </span>
+                        <span className="font-medium">{formatCurrency(invoice.totalAmount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Negatif Bakiye */}
+              {dashboardData.negativeBalanceAccounts.length > 0 && (
+                <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-lg border border-red-300 dark:border-red-700">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                      <span className="font-semibold text-red-800 dark:text-red-300">
+                        {dashboardData.negativeBalanceAccounts.length} Kasa Negatif Bakiyede
+                      </span>
+                    </div>
+                    <Link href="/cash-accounts">
+                      <Button variant="outline" size="sm" className="text-xs">
+                        Görüntüle <ArrowRight className="h-3 w-3 ml-1" />
+                      </Button>
+                    </Link>
+                  </div>
+                  <div className="text-sm text-red-700 dark:text-red-400">
+                    {dashboardData.negativeBalanceAccounts.slice(0, 3).map((account: any) => (
+                      <div key={account.id} className="flex items-center justify-between py-1">
+                        <span>{account.name}</span>
+                        <span className="font-medium text-red-600">
+                          {formatCurrency(account.balance)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Düşük Bakiye */}
+              {dashboardData.lowBalanceAccounts.length > 0 && (
+                <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg border border-yellow-300 dark:border-yellow-700">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                      <span className="font-semibold text-yellow-800 dark:text-yellow-300">
+                        {dashboardData.lowBalanceAccounts.length} Kasa Düşük Bakiyede
+                      </span>
+                    </div>
+                    <Link href="/cash-accounts">
+                      <Button variant="outline" size="sm" className="text-xs">
+                        Görüntüle <ArrowRight className="h-3 w-3 ml-1" />
+                      </Button>
+                    </Link>
+                  </div>
+                  <div className="text-sm text-yellow-700 dark:text-yellow-400">
+                    {dashboardData.lowBalanceAccounts.slice(0, 3).map((account: any) => (
+                      <div key={account.id} className="flex items-center justify-between py-1">
+                        <span>{account.name}</span>
+                        <span className="font-medium">{formatCurrency(account.balance)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Recent Transactions */}

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { createNotification } from '@/lib/notifications'
 
 export async function GET() {
   try {
@@ -203,6 +204,78 @@ export async function POST(request: NextRequest) {
 
       return newTransaction
     })
+
+    // Bildirim gönder
+    // 1. Büyük işlem kontrolü
+    const preference = await prisma.notificationPreference.findUnique({
+      where: { userId: session.user.id },
+    })
+
+    const largeTransactionLimit = preference?.largeTransactionLimit || 10000
+    if (parseFloat(amount) >= largeTransactionLimit) {
+      createNotification({
+        userId: session.user.id,
+        companyId: session.user.companyId,
+        type: 'LARGE_TRANSACTION',
+        priority: 'HIGH',
+        title: 'Büyük İşlem Tespit Edildi',
+        message: `${type === 'INCOME' ? 'Gelir' : 'Gider'} işlemi: ${category} - ₺${parseFloat(amount).toFixed(2)}`,
+        link: `/transactions`,
+        metadata: {
+          transactionId: transaction.id,
+          type,
+          amount: parseFloat(amount),
+          category,
+        },
+      }).catch((err) => console.error('Büyük işlem bildirimi hatası:', err))
+    }
+
+    // 2. Kasa bakiyesi kontrolü (eğer kasa seçildiyse ve işlem ödendiyse)
+    if (cashAccountId && isPaid) {
+      const updatedCashAccount = await prisma.cashAccount.findUnique({
+        where: { id: cashAccountId },
+      })
+
+      if (updatedCashAccount) {
+        const lowBalanceLimit = preference?.lowBalanceLimit || 1000
+
+        // Negatif bakiye kontrolü
+        if (updatedCashAccount.balance < 0) {
+          createNotification({
+            userId: session.user.id,
+            companyId: session.user.companyId,
+            type: 'NEGATIVE_BALANCE',
+            priority: 'URGENT',
+            title: 'Kasa Negatif Bakiyede!',
+            message: `"${updatedCashAccount.name}" kasasının bakiyesi negatif: ₺${updatedCashAccount.balance.toFixed(2)}`,
+            link: `/cash-accounts/${cashAccountId}`,
+            metadata: {
+              cashAccountId: cashAccountId,
+              cashAccountName: updatedCashAccount.name,
+              balance: updatedCashAccount.balance,
+            },
+          }).catch((err) => console.error('Negatif bakiye bildirimi hatası:', err))
+        }
+        // Düşük bakiye kontrolü
+        else if (updatedCashAccount.balance < lowBalanceLimit && updatedCashAccount.balance >= 0) {
+          createNotification({
+            userId: session.user.id,
+            companyId: session.user.companyId,
+            type: 'LOW_BALANCE',
+            priority: 'MEDIUM',
+            title: 'Düşük Bakiye Uyarısı',
+            message: `"${updatedCashAccount.name}" kasasının bakiyesi düşük: ₺${updatedCashAccount.balance.toFixed(2)}`,
+            link: `/cash-accounts/${cashAccountId}`,
+            metadata: {
+              cashAccountId: cashAccountId,
+              cashAccountName: updatedCashAccount.name,
+              balance: updatedCashAccount.balance,
+              limit: lowBalanceLimit,
+            },
+          }).catch((err) => console.error('Düşük bakiye bildirimi hatası:', err))
+        }
+      }
+    }
 
     return NextResponse.json(transaction, { status: 201 })
   } catch (error) {

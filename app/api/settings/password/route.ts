@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
+import { createNotification } from '@/lib/notifications'
 
 export async function PUT(request: Request) {
   try {
@@ -56,6 +57,20 @@ export async function PUT(request: Request) {
       where: { id: session.user.id },
       data: { password: hashedNewPassword },
     })
+
+    // Şifre değiştirildiğinde bildirim gönder
+    createNotification({
+      userId: session.user.id,
+      companyId: session.user.companyId,
+      type: 'PASSWORD_CHANGED',
+      priority: 'HIGH',
+      title: 'Şifre Değiştirildi',
+      message: 'Hesap şifreniz başarıyla değiştirildi. Eğer siz yapmadıysanız, lütfen derhal işlem yapın.',
+      link: '/settings',
+      metadata: {
+        timestamp: new Date().toISOString(),
+      },
+    }).catch((err) => console.error('Şifre değiştirme bildirimi hatası:', err))
 
     return NextResponse.json({ message: 'Şifre başarıyla güncellendi' })
   } catch (error) {

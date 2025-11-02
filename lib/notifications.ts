@@ -22,6 +22,7 @@ export type NotificationType =
   | 'SYSTEM_UPDATE'
   // Kullanıcı aktivite bildirimleri
   | 'CLIENT_ADDED'
+  | 'CLIENT_DELETED'
   | 'BULK_TRANSACTION'
   | 'REPORT_GENERATED'
 
@@ -45,14 +46,10 @@ export async function createNotification(params: CreateNotificationParams) {
   try {
     const { userId, companyId, type, priority = 'MEDIUM', title, message, link, metadata } = params
 
-    console.log('[Notification] Bildirim oluşturuluyor:', { userId, type, title })
-
     // Kullanıcının bildirim tercihlerini kontrol et
     const preference = await prisma.notificationPreference.findUnique({
       where: { userId },
     })
-
-    console.log('[Notification] Tercih kontrolü:', { preference: !!preference })
 
   // Eğer kullanıcının tercihi yoksa, varsayılan tercihler oluştur
   if (!preference) {
@@ -67,10 +64,8 @@ export async function createNotification(params: CreateNotificationParams) {
 
     // Bildirim türüne göre tercih kontrolü
     const isEnabled = await checkNotificationPreference(userId, type)
-    console.log('[Notification] Bildirim türü aktif mi?', { type, isEnabled })
     
     if (!isEnabled) {
-      console.log('[Notification] Bildirim gönderilmiyor - tercih kapalı')
       return null // Bildirim gönderilmez
     }
 
@@ -88,7 +83,6 @@ export async function createNotification(params: CreateNotificationParams) {
       },
     })
 
-    console.log('[Notification] Bildirim oluşturuldu:', notification.id)
     return notification
   } catch (error) {
     console.error('Bildirim oluşturulurken hata:', error)
@@ -154,6 +148,8 @@ async function checkNotificationPreference(
     // Kullanıcı aktivite bildirimleri
     case 'CLIENT_ADDED':
       return preference.clientAdded
+    case 'CLIENT_DELETED':
+      return preference.clientAdded // Tedarikçi silme de aynı tercihi kullanır
     case 'BULK_TRANSACTION':
       return preference.bulkTransaction
     case 'REPORT_GENERATED':

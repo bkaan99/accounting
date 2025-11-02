@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Settings, User, Building2, Upload, X } from 'lucide-react'
+import { Settings, User, Building2, Upload, X, Bell } from 'lucide-react'
 import { toast } from '@/components/ui/toast'
 import { LoadingButton } from '@/components/ui/loading'
 
@@ -48,6 +48,32 @@ export default function SettingsPage() {
     newPassword: '',
     confirmPassword: '',
   })
+
+  const [notificationPreferences, setNotificationPreferences] = useState({
+    invoiceCreated: true,
+    invoiceSent: true,
+    invoicePaid: true,
+    invoiceDueSoon: true,
+    invoiceOverdue: true,
+    invoiceStatusChanged: true,
+    invoiceEdited: false,
+    largeTransaction: true,
+    largeTransactionLimit: 10000,
+    lowBalance: true,
+    lowBalanceLimit: 1000,
+    negativeBalance: true,
+    transactionDeleted: true,
+    transactionEdited: false,
+    userAdded: true,
+    passwordChanged: true,
+    suspiciousLogin: true,
+    systemUpdate: true,
+    clientAdded: false,
+    bulkTransaction: true,
+    reportGenerated: false,
+  })
+  const [isLoadingPreferences, setIsLoadingPreferences] = useState(true)
+  const [isSavingPreferences, setIsSavingPreferences] = useState(false)
 
   // Yetki kontrolü
   useEffect(() => {
@@ -92,10 +118,25 @@ export default function SettingsPage() {
     }
   }
 
+  const fetchNotificationPreferences = async () => {
+    try {
+      const response = await fetch('/api/notifications/preferences')
+      if (response.ok) {
+        const data = await response.json()
+        setNotificationPreferences(data)
+      }
+    } catch (error) {
+      console.error('Bildirim tercihleri yüklenirken hata:', error)
+    } finally {
+      setIsLoadingPreferences(false)
+    }
+  }
+
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.id) {
       console.log('Session mevcut, ayarları yüklüyorum...', session.user)
       fetchUserSettings()
+      fetchNotificationPreferences()
     } else if (status === 'authenticated') {
       console.log('Session authenticated ama user.id yok:', session)
       toast.error('Kullanıcı bilgileri eksik')
@@ -527,6 +568,305 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
+        {/* Bildirim Tercihleri */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5" />
+              Bildirim Tercihleri
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoadingPreferences ? (
+              <div className="text-center py-8">Yükleniyor...</div>
+            ) : (
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault()
+                  setIsSavingPreferences(true)
+                  try {
+                    const response = await fetch('/api/notifications/preferences', {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(notificationPreferences),
+                    })
+                    if (response.ok) {
+                      toast.success('Bildirim tercihleri güncellendi')
+                    } else {
+                      toast.error('Güncelleme başarısız')
+                    }
+                  } catch (error) {
+                    console.error('Tercihler güncellenirken hata:', error)
+                    toast.error('Bir hata oluştu')
+                  } finally {
+                    setIsSavingPreferences(false)
+                  }
+                }}
+                className="space-y-6"
+              >
+                {/* Fatura Bildirimleri */}
+                <div>
+                  <h3 className="font-semibold mb-3 text-lg">Fatura Bildirimleri</h3>
+                  <div className="space-y-3">
+                    <label className="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+                      <div>
+                        <span className="font-medium">Fatura Oluşturuldu</span>
+                        <p className="text-sm text-gray-500">Yeni fatura oluşturulduğunda bildirim al</p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={notificationPreferences.invoiceCreated}
+                        onChange={(e) =>
+                          setNotificationPreferences({
+                            ...notificationPreferences,
+                            invoiceCreated: e.target.checked,
+                          })
+                        }
+                        className="w-5 h-5"
+                      />
+                    </label>
+                    <label className="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+                      <div>
+                        <span className="font-medium">Fatura Gönderildi</span>
+                        <p className="text-sm text-gray-500">Fatura gönderildiğinde bildirim al</p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={notificationPreferences.invoiceSent}
+                        onChange={(e) =>
+                          setNotificationPreferences({
+                            ...notificationPreferences,
+                            invoiceSent: e.target.checked,
+                          })
+                        }
+                        className="w-5 h-5"
+                      />
+                    </label>
+                    <label className="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+                      <div>
+                        <span className="font-medium">Fatura Ödendi</span>
+                        <p className="text-sm text-gray-500">Fatura ödendiğinde bildirim al</p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={notificationPreferences.invoicePaid}
+                        onChange={(e) =>
+                          setNotificationPreferences({
+                            ...notificationPreferences,
+                            invoicePaid: e.target.checked,
+                          })
+                        }
+                        className="w-5 h-5"
+                      />
+                    </label>
+                    <label className="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+                      <div>
+                        <span className="font-medium">Vade Yaklaşıyor</span>
+                        <p className="text-sm text-gray-500">Fatura vadesi yaklaştığında bildirim al</p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={notificationPreferences.invoiceDueSoon}
+                        onChange={(e) =>
+                          setNotificationPreferences({
+                            ...notificationPreferences,
+                            invoiceDueSoon: e.target.checked,
+                          })
+                        }
+                        className="w-5 h-5"
+                      />
+                    </label>
+                    <label className="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+                      <div>
+                        <span className="font-medium">Gecikmiş Fatura</span>
+                        <p className="text-sm text-gray-500">Fatura geciktiğinde bildirim al</p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={notificationPreferences.invoiceOverdue}
+                        onChange={(e) =>
+                          setNotificationPreferences({
+                            ...notificationPreferences,
+                            invoiceOverdue: e.target.checked,
+                          })
+                        }
+                        className="w-5 h-5"
+                      />
+                    </label>
+                    <label className="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+                      <div>
+                        <span className="font-medium">Fatura Düzenlendi</span>
+                        <p className="text-sm text-gray-500">Fatura düzenlendiğinde bildirim al</p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={notificationPreferences.invoiceEdited}
+                        onChange={(e) =>
+                          setNotificationPreferences({
+                            ...notificationPreferences,
+                            invoiceEdited: e.target.checked,
+                          })
+                        }
+                        className="w-5 h-5"
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                {/* İşlem Bildirimleri */}
+                <div>
+                  <h3 className="font-semibold mb-3 text-lg">İşlem Bildirimleri</h3>
+                  <div className="space-y-3">
+                    <label className="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+                      <div className="flex-1">
+                        <span className="font-medium">Büyük İşlemler</span>
+                        <p className="text-sm text-gray-500">
+                          Belirli tutarın üzerindeki işlemlerde bildirim al
+                        </p>
+                        <Input
+                          type="number"
+                          value={notificationPreferences.largeTransactionLimit}
+                          onChange={(e) =>
+                            setNotificationPreferences({
+                              ...notificationPreferences,
+                              largeTransactionLimit: parseFloat(e.target.value) || 10000,
+                            })
+                          }
+                          className="mt-2 w-32"
+                          disabled={!notificationPreferences.largeTransaction}
+                        />
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={notificationPreferences.largeTransaction}
+                        onChange={(e) =>
+                          setNotificationPreferences({
+                            ...notificationPreferences,
+                            largeTransaction: e.target.checked,
+                          })
+                        }
+                        className="w-5 h-5 ml-4"
+                      />
+                    </label>
+                    <label className="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+                      <div className="flex-1">
+                        <span className="font-medium">Düşük Bakiye Uyarısı</span>
+                        <p className="text-sm text-gray-500">Kasa bakiyesi düştüğünde bildirim al</p>
+                        <Input
+                          type="number"
+                          value={notificationPreferences.lowBalanceLimit}
+                          onChange={(e) =>
+                            setNotificationPreferences({
+                              ...notificationPreferences,
+                              lowBalanceLimit: parseFloat(e.target.value) || 1000,
+                            })
+                          }
+                          className="mt-2 w-32"
+                          disabled={!notificationPreferences.lowBalance}
+                        />
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={notificationPreferences.lowBalance}
+                        onChange={(e) =>
+                          setNotificationPreferences({
+                            ...notificationPreferences,
+                            lowBalance: e.target.checked,
+                          })
+                        }
+                        className="w-5 h-5 ml-4"
+                      />
+                    </label>
+                    <label className="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+                      <div>
+                        <span className="font-medium">Negatif Bakiye</span>
+                        <p className="text-sm text-gray-500">Kasa bakiyesi eksiye düştüğünde bildirim al</p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={notificationPreferences.negativeBalance}
+                        onChange={(e) =>
+                          setNotificationPreferences({
+                            ...notificationPreferences,
+                            negativeBalance: e.target.checked,
+                          })
+                        }
+                        className="w-5 h-5"
+                      />
+                    </label>
+                    <label className="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+                      <div>
+                        <span className="font-medium">İşlem Silindi</span>
+                        <p className="text-sm text-gray-500">İşlem silindiğinde bildirim al</p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={notificationPreferences.transactionDeleted}
+                        onChange={(e) =>
+                          setNotificationPreferences({
+                            ...notificationPreferences,
+                            transactionDeleted: e.target.checked,
+                          })
+                        }
+                        className="w-5 h-5"
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                {/* Sistem Bildirimleri */}
+                <div>
+                  <h3 className="font-semibold mb-3 text-lg">Sistem Bildirimleri</h3>
+                  <div className="space-y-3">
+                    <label className="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+                      <div>
+                        <span className="font-medium">Şifre Değiştirildi</span>
+                        <p className="text-sm text-gray-500">Şifre değiştiğinde bildirim al</p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={notificationPreferences.passwordChanged}
+                        onChange={(e) =>
+                          setNotificationPreferences({
+                            ...notificationPreferences,
+                            passwordChanged: e.target.checked,
+                          })
+                        }
+                        className="w-5 h-5"
+                      />
+                    </label>
+                    {session?.user?.role === 'ADMIN' || session?.user?.role === 'SUPERADMIN' ? (
+                      <label className="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+                        <div>
+                          <span className="font-medium">Yeni Kullanıcı Eklendi</span>
+                          <p className="text-sm text-gray-500">Yeni kullanıcı eklendiğinde bildirim al</p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={notificationPreferences.userAdded}
+                          onChange={(e) =>
+                            setNotificationPreferences({
+                              ...notificationPreferences,
+                              userAdded: e.target.checked,
+                            })
+                          }
+                          className="w-5 h-5"
+                        />
+                      </label>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-4 border-t">
+                  <Button type="submit" disabled={isSavingPreferences}>
+                    {isSavingPreferences ? 'Kaydediliyor...' : 'Tercihleri Kaydet'}
+                  </Button>
+                </div>
+              </form>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Uygulama Ayarları */}
         <Card>
           <CardHeader>
@@ -539,17 +879,6 @@ export default function SettingsPage() {
                   <h3 className="font-medium">Koyu Tema</h3>
                   <p className="text-sm text-gray-600">
                     Uygulamayı koyu temada kullan
-                  </p>
-                </div>
-                <Button variant="outline" size="sm">
-                  Aktif
-                </Button>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-medium">E-posta Bildirimleri</h3>
-                  <p className="text-sm text-gray-600">
-                    Önemli güncellemeler için e-posta al
                   </p>
                 </div>
                 <Button variant="outline" size="sm">

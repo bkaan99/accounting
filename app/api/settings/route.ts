@@ -57,19 +57,24 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 })
     }
 
+    const body = await request.json()
     const { 
       name, 
       phone, 
-      address
-    } = await request.json()
+      address,
+      company, // Şirket adı
+      companyLogo // Şirket logosu
+    } = body
+
+    // Kullanıcı bilgilerini güncelle
+    const updateData: any = {}
+    if (name !== undefined) updateData.name = name
+    if (phone !== undefined) updateData.phone = phone
+    if (address !== undefined) updateData.address = address
 
     const updatedUser = await prisma.user.update({
       where: { id: session.user.id },
-      data: {
-        name,
-        phone,
-        address,
-      },
+      data: updateData,
       select: {
         id: true,
         name: true,
@@ -91,6 +96,45 @@ export async function PUT(request: Request) {
         },
       },
     })
+
+    // Şirket bilgilerini güncelle (varsa)
+    if ((company !== undefined || companyLogo !== undefined) && updatedUser.companyId) {
+      const companyUpdateData: any = {}
+      if (company !== undefined) companyUpdateData.name = company
+      if (companyLogo !== undefined) companyUpdateData.logo = companyLogo
+
+      await prisma.company.update({
+        where: { id: updatedUser.companyId },
+        data: companyUpdateData,
+      })
+
+      // Güncellenmiş şirket bilgisini tekrar al
+      const userWithUpdatedCompany = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          address: true,
+          companyId: true,
+          company: {
+            select: {
+              id: true,
+              name: true,
+              taxId: true,
+              address: true,
+              phone: true,
+              email: true,
+              website: true,
+              logo: true,
+            },
+          },
+        },
+      })
+
+      return NextResponse.json(userWithUpdatedCompany || updatedUser)
+    }
 
     return NextResponse.json(updatedUser)
   } catch (error) {

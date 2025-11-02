@@ -228,12 +228,12 @@ export default function InvoiceDetailPage() {
         {/* Fatura Bilgileri */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            {/* Müşteri Bilgileri */}
+            {/* Tedarikçi Bilgileri */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <User className="h-5 w-5" />
-                  <span>Müşteri Bilgileri</span>
+                  <span>Tedarikçi Bilgileri</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>

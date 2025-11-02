@@ -52,7 +52,7 @@ model Company {
 
   // İlişkiler
   users         User[]         // Şirkete bağlı kullanıcılar
-  clients       Client[]       // Şirketin müşterileri
+  clients       Client[]       // Şirketin tedarikçileri
   invoices      Invoice[]      // Şirketin faturaları
   transactions  Transaction[]   // Şirketin işlemleri
   cashAccounts  CashAccount[]   // Şirketin kasaları
@@ -77,7 +77,7 @@ model User {
   accounts       Account[]
   sessions       Session[]
   company        Company?  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  clients        Client[]  // Kullanıcının müşterileri
+  clients        Client[]  // Kullanıcının tedarikçileri
   invoices       Invoice[] // Kullanıcının faturaları
   transactions   Transaction[] // Kullanıcının işlemleri
 }
@@ -90,7 +90,7 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-// Müşteriler - Şirketlere bağlı
+// Tedarikçiler - Şirketlere bağlı
 model Client {
   id        String  @id @default(cuid())
   name      String

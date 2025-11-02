@@ -15,7 +15,7 @@ export const RegisterSchema = z.object({
 })
 
 export const ClientSchema = z.object({
-  name: z.string().min(2, 'Müşteri adı en az 2 karakter olmalıdır'),
+  name: z.string().min(2, 'Tedarikçi adı en az 2 karakter olmalıdır'),
   email: z.string().email('Geçerli bir e-posta adresi giriniz').optional().or(z.literal('')),
   phone: z.string().optional(),
   address: z.string().optional(),
@@ -39,14 +39,14 @@ export const InvoiceItemSchema = z.object({
 })
 
 export const ClientInfoSchema = z.object({
-  name: z.string().min(1, 'Müşteri adı gerekli'),
+  name: z.string().min(1, 'Tedarikçi adı gerekli'),
   email: z.string().email('Geçerli e-posta giriniz').optional().or(z.literal('')),
   phone: z.string().optional(),
   address: z.string().optional(),
 })
 
 export const invoiceSchema = z.object({
-  clientId: z.string().min(1, 'Müşteri seçiniz'),
+  clientId: z.string().min(1, 'Tedarikçi seçiniz'),
   issueDate: z.string(),
   dueDate: z.string(),
   status: z.enum(['DRAFT', 'SENT', 'PAID', 'OVERDUE']).optional(),
@@ -55,7 +55,7 @@ export const invoiceSchema = z.object({
 })
 
 export const InvoiceSchema = z.object({
-  clientId: z.string().min(1, 'Müşteri seçiniz'),
+  clientId: z.string().min(1, 'Tedarikçi seçiniz'),
   dueDate: z.date(),
   notes: z.string().optional(),
   items: z.array(InvoiceItemSchema).min(1, 'En az bir kalem ekleyiniz'),

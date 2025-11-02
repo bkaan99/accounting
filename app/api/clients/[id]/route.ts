@@ -28,9 +28,9 @@ export async function PUT(
 
     return NextResponse.json(client)
   } catch (error) {
-    console.error('Müşteri güncellenirken hata:', error)
+    console.error('Tedarikçi güncellenirken hata:', error)
     return NextResponse.json(
-      { error: 'Müşteri güncellenirken hata oluştu' },
+      { error: 'Tedarikçi güncellenirken hata oluştu' },
       { status: 500 }
     )
   }
@@ -55,11 +55,11 @@ export async function DELETE(
       data: { isDeleted: true }
     })
 
-    return NextResponse.json({ message: 'Müşteri silindi' })
+    return NextResponse.json({ message: 'Tedarikçi silindi' })
   } catch (error) {
-    console.error('Müşteri silinirken hata:', error)
+    console.error('Tedarikçi silinirken hata:', error)
     return NextResponse.json(
-      { error: 'Müşteri silinirken hata oluştu' },
+      { error: 'Tedarikçi silinirken hata oluştu' },
       { status: 500 }
     )
   }

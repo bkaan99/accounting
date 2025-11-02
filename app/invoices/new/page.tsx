@@ -191,14 +191,14 @@ export default function NewInvoicePage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Müşteri Seçimi */}
+          {/* Tedarikçi Seçimi */}
           <Card>
             <CardHeader>
-              <CardTitle>Müşteri Bilgileri</CardTitle>
+              <CardTitle>Tedarikçi Bilgileri</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="client">Müşteri Seçin</Label>
+                <Label htmlFor="client">Tedarikçi Seçin</Label>
                 <select
                   id="client"
                   className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
@@ -206,7 +206,7 @@ export default function NewInvoicePage() {
                   onChange={(e) => handleClientSelect(e.target.value)}
                   required
                 >
-                  <option value="">Müşteri seçiniz...</option>
+                  <option value="">Tedarikçi seçiniz...</option>
                   {clients.map((client) => (
                     <option key={client.id} value={client.id}>
                       {client.name}
@@ -218,7 +218,7 @@ export default function NewInvoicePage() {
               {selectedClient && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                   <div>
-                    <Label htmlFor="clientName">Müşteri Adı</Label>
+                    <Label htmlFor="clientName">Tedarikçi Adı</Label>
                     <Input
                       id="clientName"
                       value={form.clientInfo.name}

@@ -458,7 +458,7 @@ export default function AdminCompaniesPage() {
                         <TableCell>
                           <div className="text-sm space-y-1">
                             <div>{company._count.users} kullanıcı</div>
-                            <div>{company._count.clients} müşteri</div>
+                            <div>{company._count.clients} tedarikçi</div>
                             <div>{company._count.invoices} fatura</div>
                             <div>{company._count.transactions} işlem</div>
                           </div>

@@ -144,7 +144,7 @@ export default function EditInvoicePage() {
     e.preventDefault()
     
     if (!formData.clientId || formData.items.length === 0) {
-      toast.error('Müşteri seçimi ve en az bir kalem gereklidir')
+      toast.error('Tedarikçi seçimi ve en az bir kalem gereklidir')
       return
     }
 
@@ -231,13 +231,13 @@ export default function EditInvoicePage() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 gap-4">
                 <div>
-                  <Label htmlFor="clientId">Müşteri *</Label>
+                  <Label htmlFor="clientId">Tedarikçi *</Label>
                   <Select
                     value={formData.clientId}
                     onValueChange={(value) => setFormData({ ...formData, clientId: value })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Müşteri seçiniz" />
+                      <SelectValue placeholder="Tedarikçi seçiniz" />
                     </SelectTrigger>
                     <SelectContent>
                       {clients.map((client) => (

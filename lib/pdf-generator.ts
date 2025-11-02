@@ -59,7 +59,7 @@ export const generateInvoicePDF = (invoice: InvoiceData) => {
   yPosition += 6
   doc.text('Tel: +90 312 555 01 01', 20, yPosition)
 
-  // Müşteri bilgileri (sağ)
+  // Tedarikçi bilgileri (sağ)
   let rightYPosition = yPosition - 26
   doc.setFont('helvetica', 'bold')
   doc.text('Fatura Edilen:', pageWidth - 20, rightYPosition, { align: 'right' })

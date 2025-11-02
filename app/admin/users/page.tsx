@@ -487,7 +487,7 @@ export default function AdminUsersPage() {
                         </TableCell>
                         <TableCell>
                           <div className="text-sm space-y-1">
-                            <div>{user._count.clients} müşteri</div>
+                            <div>{user._count.clients} tedarikçi</div>
                             <div>{user._count.invoices} fatura</div>
                             <div>{user._count.transactions} işlem</div>
                           </div>

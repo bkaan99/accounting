@@ -6,7 +6,7 @@ Modern ve kullanıcı dostu bir muhasebe uygulaması. Next.js 14, Prisma, NextAu
 
 - ✅ **Kullanıcı Kimlik Doğrulaması** - Güvenli giriş/kayıt sistemi
 - ✅ **Dashboard** - Gelir/gider özet paneli ve grafikler
-- ✅ **Müşteri Yönetimi** - Müşteri ekleme, düzenleme, silme
+- ✅ **Tedarikçi Yönetimi** - Tedarikçi ekleme, düzenleme, silme
 - ✅ **Fatura Oluşturma** - Detaylı faturalar oluşturma ve yönetme
 - ✅ **İşlem Takibi** - Gelir/gider kayıtları
 - ✅ **Ayarlar** - Kullanıcı ve şirket bilgileri
@@ -82,10 +82,10 @@ Uygulamayı test etmek için aşağıdaki bilgileri kullanabilirsiniz:
 - Son işlemler ve faturalar listesi
 - Özet istatistikler
 
-### Müşteriler
-- Yeni müşteri ekleme
-- Müşteri bilgilerini düzenleme
-- Müşteri arama ve filtreleme
+### Tedarikçiler
+- Yeni tedarikçi ekleme
+- Tedarikçi bilgilerini düzenleme
+- Tedarikçi arama ve filtreleme
 
 ### Faturalar
 - Yeni fatura oluşturma

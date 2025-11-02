@@ -176,7 +176,7 @@ export function InvoiceFilters({
                   className="flex items-center text-sm font-medium"
                 >
                   <User className="h-4 w-4 mr-1" />
-                  Müşteri
+                  Tedarikçi
                 </Label>
                 <select
                   id="client"
@@ -184,7 +184,7 @@ export function InvoiceFilters({
                   value={filters.client}
                   onChange={(e) => updateFilter('client', e.target.value)}
                 >
-                  <option value="">Tüm müşteriler</option>
+                  <option value="">Tüm tedarikçiler</option>
                   {clients.map((client) => (
                     <option key={client} value={client}>
                       {client}

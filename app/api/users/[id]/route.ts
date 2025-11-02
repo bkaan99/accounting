@@ -121,7 +121,7 @@ export async function DELETE(
 
     if (hasData) {
       return NextResponse.json(
-        { error: 'Bu kullanıcıya ait müşteri, fatura veya işlem kayıtları var. Önce bunları silin.' },
+        { error: 'Bu kullanıcıya ait tedarikçi, fatura veya işlem kayıtları var. Önce bunları silin.' },
         { status: 400 }
       )
     }

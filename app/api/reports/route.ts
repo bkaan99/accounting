@@ -133,7 +133,7 @@ export async function GET(request: NextRequest) {
     }, {} as Record<string, string>)
 
     const clientData = topClients.map((item) => ({
-      clientName: clientMap[item.clientId] || 'Bilinmeyen Müşteri',
+      clientName: clientMap[item.clientId] || 'Bilinmeyen Tedarikçi',
       revenue: item._sum.totalAmount || 0,
     }))
 

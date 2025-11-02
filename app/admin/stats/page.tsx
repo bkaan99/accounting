@@ -133,7 +133,7 @@ export default async function AdminStatsPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Toplam Müşteri
+                Toplam Tedarikçi
               </CardTitle>
               <Building2 className="h-4 w-4 text-green-600" />
             </CardHeader>
@@ -292,7 +292,7 @@ export default async function AdminStatsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Şirket</TableHead>
-                    <TableHead>Müşteri</TableHead>
+                    <TableHead>Tedarikçi</TableHead>
                     <TableHead>Fatura</TableHead>
                     <TableHead>İşlem</TableHead>
                   </TableRow>

@@ -110,7 +110,7 @@ export default function HelpPage() {
                 <li>1. Giriş</li>
                 <li>2. Başlangıç</li>
                 <li>3. Dashboard</li>
-                <li>4. Müşteri Yönetimi</li>
+                <li>4. Tedarikçi Yönetimi</li>
                 <li>5. Fatura Yönetimi</li>
                 <li>6. İşlem Yönetimi</li>
                 <li>7. Filtreleme ve Arama</li>
@@ -124,13 +124,13 @@ export default function HelpPage() {
             <hr>
 
             <h2>🚀 Giriş</h2>
-            <p>Bu muhasebe uygulaması, küçük ve orta ölçekli işletmelerin finansal işlemlerini takip etmelerine yardımcı olmak için geliştirilmiştir. Uygulama ile fatura oluşturabilir, müşteri bilgilerini yönetebilir, gelir-gider takibi yapabilir ve detaylı raporlar alabilirsiniz.</p>
+            <p>Bu muhasebe uygulaması, küçük ve orta ölçekli işletmelerin finansal işlemlerini takip etmelerine yardımcı olmak için geliştirilmiştir. Uygulama ile fatura oluşturabilir, tedarikçi bilgilerini yönetebilir, gelir-gider takibi yapabilir ve detaylı raporlar alabilirsiniz.</p>
 
             <div class="feature-list">
               <h3>🌟 Temel Özellikler</h3>
               <ul>
                 <li><strong>Dashboard:</strong> Genel finansal durum görüntüleme</li>
-                <li><strong>Müşteri Yönetimi:</strong> Müşteri bilgileri ekleme/düzenleme</li>
+                <li><strong>Tedarikçi Yönetimi:</strong> Tedarikçi bilgileri ekleme/düzenleme</li>
                 <li><strong>Fatura Yönetimi:</strong> Fatura oluşturma, düzenleme, PDF indirme</li>
                 <li><strong>İşlem Takibi:</strong> Gelir/gider kayıtları</li>
                 <li><strong>Filtreleme:</strong> Gelişmiş arama ve filtreleme</li>
@@ -161,7 +161,7 @@ export default function HelpPage() {
             <p>Sol menüde bulunan sekmeler:</p>
             <ul>
               <li><strong>Dashboard:</strong> Ana sayfa</li>
-              <li><strong>Müşteriler:</strong> Müşteri listesi ve yönetimi</li>
+              <li><strong>Tedarikçiler:</strong> Tedarikçi listesi ve yönetimi</li>
               <li><strong>Faturalar:</strong> Fatura listesi ve yönetimi</li>
               <li><strong>İşlemler:</strong> Gelir/gider işlemleri</li>
               <li><strong>Ayarlar:</strong> Kullanıcı ayarları</li>
@@ -177,24 +177,24 @@ export default function HelpPage() {
               <li><strong>Toplam Gelir:</strong> Tüm gelir işlemlerinin toplamı</li>
               <li><strong>Toplam Gider:</strong> Tüm gider işlemlerinin toplamı</li>
               <li><strong>Net Kar:</strong> Gelir - Gider farkı</li>
-              <li><strong>Toplam Müşteri:</strong> Sistemdeki müşteri sayısı</li>
+              <li><strong>Toplam Tedarikçi:</strong> Sistemdeki tedarikçi sayısı</li>
               <li><strong>Çalışma Süresi:</strong> Uygulamanın ne kadar süredir çalıştığı</li>
             </ol>
 
             <hr>
 
-            <h2>👥 Müşteri Yönetimi</h2>
+            <h2>👥 Tedarikçi Yönetimi</h2>
 
-            <h3>➕ Yeni Müşteri Ekleme</h3>
+            <h3>➕ Yeni Tedarikçi Ekleme</h3>
             <ol>
-              <li><strong>Müşteriler</strong> sekmesine gidin</li>
-              <li><strong>"Yeni Müşteri"</strong> butonuna tıklayın</li>
+              <li><strong>Tedarikçiler</strong> sekmesine gidin</li>
+              <li><strong>"Yeni Tedarikçi"</strong> butonuna tıklayın</li>
               <li>Gerekli bilgileri doldurun: Ad (zorunlu), Email (zorunlu), Telefon, Adres</li>
-              <li><strong>"Müşteri Ekle"</strong> butonuna tıklayın</li>
+              <li><strong>"Tedarikçi Ekle"</strong> butonuna tıklayın</li>
             </ol>
 
             <div class="warning">
-              <strong>⚠️ Dikkat:</strong> Müşteriyi sildikten sonra o müşteriye ait faturalar da silinir.
+              <strong>⚠️ Dikkat:</strong> Tedarikçiyi sildikten sonra o tedarikçiye ait faturalar da silinir.
             </div>
 
             <hr>
@@ -205,7 +205,7 @@ export default function HelpPage() {
             <ol>
               <li><strong>Faturalar</strong> sekmesine gidin</li>
               <li><strong>"Yeni Fatura"</strong> butonuna tıklayın</li>
-              <li>Fatura bilgilerini doldurun: Müşteri, Fatura Tarihi, Vade Tarihi, Notlar</li>
+              <li>Fatura bilgilerini doldurun: Tedarikçi, Fatura Tarihi, Vade Tarihi, Notlar</li>
               <li><strong>"Kalem Ekle"</strong> butonuna tıklayarak ürün/hizmet ekleyin</li>
               <li><strong>"Fatura Oluştur"</strong> butonuna tıklayın</li>
             </ol>
@@ -213,7 +213,7 @@ export default function HelpPage() {
             <h3>🏷️ Fatura Durumları</h3>
             <ul>
               <li><strong>Taslak:</strong> Henüz gönderilmemiş fatura</li>
-              <li><strong>Gönderildi:</strong> Müşteriye gönderilmiş fatura</li>
+              <li><strong>Gönderildi:</strong> Tedarikçiye gönderilmiş fatura</li>
               <li><strong>Ödendi:</strong> Ödemesi alınmış fatura</li>
               <li><strong>Gecikmiş:</strong> Vade tarihi geçmiş, ödenmemiş fatura</li>
             </ul>
@@ -248,7 +248,7 @@ export default function HelpPage() {
 
             <h4>🔧 Gelişmiş Filtreler</h4>
             <ul>
-              <li>Müşteri bazlı filtreleme</li>
+              <li>Tedarikçi bazlı filtreleme</li>
               <li>Fatura numarası arama</li>
               <li>Tarih aralığı seçimi</li>
               <li>Tutar aralığı belirleme</li>
@@ -280,7 +280,7 @@ export default function HelpPage() {
 
             <h3>📋 PDF İçeriği</h3>
             <ul>
-              <li>Şirket ve müşteri bilgileri</li>
+              <li>Şirket ve tedarikçi bilgileri</li>
               <li>Fatura detayları (numara, tarih, vade)</li>
               <li>Kalemler tablosu</li>
               <li>Toplam hesaplamalar (KDV dahil)</li>
@@ -377,9 +377,9 @@ export default function HelpPage() {
       description: 'Ana sayfa ve önemli metriklerin görüntülenmesi',
     },
     {
-      title: 'Müşteri Yönetimi',
+      title: 'Tedarikçi Yönetimi',
       icon: '👥',
-      description: 'Müşteri ekleme, düzenleme ve silme işlemleri',
+      description: 'Tedarikçi ekleme, düzenleme ve silme işlemleri',
     },
     {
       title: 'Fatura Yönetimi',
@@ -459,7 +459,7 @@ export default function HelpPage() {
               <ol className="list-decimal list-inside space-y-2 text-gray-600 dark:text-gray-400">
                 <li>Email ve şifrenizle giriş yapın</li>
                 <li>Dashboard'dan genel durumunuzu kontrol edin</li>
-                <li>İlk müşterinizi ekleyin</li>
+                <li>İlk tedarikçinizi ekleyin</li>
                 <li>İlk faturanızı oluşturun</li>
                 <li>Gelir/gider işlemlerinizi kaydedin</li>
               </ol>
@@ -473,7 +473,7 @@ export default function HelpPage() {
                     Fatura Oluşturma
                   </h4>
                   <p className="text-sm text-blue-700 dark:text-blue-300">
-                    Faturalar → Yeni Fatura → Müşteri seç → Kalemler ekle →
+                    Faturalar → Yeni Fatura → Tedarikçi seç → Kalemler ekle →
                     Oluştur
                   </p>
                 </div>

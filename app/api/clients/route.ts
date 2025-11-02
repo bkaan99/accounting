@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 })
     }
 
-    // Süperadmin tüm müşterileri görebilir
+    // Süperadmin tüm tedarikçileri görebilir
     if (session.user.role === 'SUPERADMIN') {
       const clients = await prisma.client.findMany({
         include: {
@@ -35,12 +35,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(clients)
     }
 
-    // Admin ve User sadece kendi şirketinin müşterilerini görebilir
+    // Admin ve User sadece kendi şirketinin tedarikçilerini görebilir
     if (session.user.companyId) {
       const clients = await prisma.client.findMany({
         where: { 
           companyId: session.user.companyId,
-          isDeleted: false // Soft delete edilmemiş müşteriler
+          isDeleted: false // Soft delete edilmemiş tedarikçiler
         },
         include: {
           user: {
@@ -58,9 +58,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json([])
   } catch (error) {
-    console.error('Müşteriler alınırken hata:', error)
+    console.error('Tedarikçiler alınırken hata:', error)
     return NextResponse.json(
-      { error: 'Müşteriler alınırken hata oluştu' },
+      { error: 'Tedarikçiler alınırken hata oluştu' },
       { status: 500 }
     )
   }
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const validatedData = ClientSchema.parse(body)
 
-    // Kullanıcının şirketi yoksa müşteri oluşturamaz
+    // Kullanıcının şirketi yoksa tedarikçi oluşturamaz
     if (!session.user.companyId) {
       return NextResponse.json(
         { error: 'Şirket bilgisi bulunamadı' },
@@ -95,9 +95,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(client, { status: 201 })
   } catch (error) {
-    console.error('Müşteri oluşturulurken hata:', error)
+    console.error('Tedarikçi oluşturulurken hata:', error)
     return NextResponse.json(
-      { error: 'Müşteri oluşturulurken hata oluştu' },
+      { error: 'Tedarikçi oluşturulurken hata oluştu' },
       { status: 500 }
     )
   }

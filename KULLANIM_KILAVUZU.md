@@ -5,7 +5,7 @@
 1. [Giriş](#giriş)
 2. [Başlangıç](#başlangıç)
 3. [Dashboard](#dashboard)
-4. [Müşteri Yönetimi](#müşteri-yönetimi)
+4. [Tedarikçi Yönetimi](#tedarikçi-yönetimi)
 5. [Fatura Yönetimi](#fatura-yönetimi)
 6. [İşlem Yönetimi](#işlem-yönetimi)
 7. [Filtreleme ve Arama](#filtreleme-ve-arama)
@@ -18,12 +18,12 @@
 
 ## Giriş
 
-Bu muhasebe uygulaması, küçük ve orta ölçekli işletmelerin finansal işlemlerini takip etmelerine yardımcı olmak için geliştirilmiştir. Uygulama ile fatura oluşturabilir, müşteri bilgilerini yönetebilir, gelir-gider takibi yapabilir ve detaylı raporlar alabilirsiniz.
+Bu muhasebe uygulaması, küçük ve orta ölçekli işletmelerin finansal işlemlerini takip etmelerine yardımcı olmak için geliştirilmiştir. Uygulama ile fatura oluşturabilir, tedarikçi bilgilerini yönetebilir, gelir-gider takibi yapabilir ve detaylı raporlar alabilirsiniz.
 
 ### Temel Özellikler
 
 - 📊 **Dashboard**: Genel finansal durum görüntüleme
-- 👥 **Müşteri Yönetimi**: Müşteri bilgileri ekleme/düzenleme
+- 👥 **Tedarikçi Yönetimi**: Tedarikçi bilgileri ekleme/düzenleme
 - 🧾 **Fatura Yönetimi**: Fatura oluşturma, düzenleme, PDF indirme
 - 💰 **İşlem Takibi**: Gelir/gider kayıtları
 - 🔍 **Filtreleme**: Gelişmiş arama ve filtreleme
@@ -54,7 +54,7 @@ Bu muhasebe uygulaması, küçük ve orta ölçekli işletmelerin finansal işle
 Sol menüde bulunan sekmeler:
 
 - **Dashboard**: Ana sayfa
-- **Müşteriler**: Müşteri listesi ve yönetimi
+- **Tedarikçiler**: Tedarikçi listesi ve yönetimi
 - **Faturalar**: Fatura listesi ve yönetimi
 - **İşlemler**: Gelir/gider işlemleri
 - **Ayarlar**: Kullanıcı ayarları
@@ -70,7 +70,7 @@ Dashboard, işletmenizin genel durumunu gösterir.
 1. **Toplam Gelir**: Tüm gelir işlemlerinin toplamı
 2. **Toplam Gider**: Tüm gider işlemlerinin toplamı
 3. **Net Kar**: Gelir - Gider farkı
-4. **Toplam Müşteri**: Sistemdeki müşteri sayısı
+4. **Toplam Tedarikçi**: Sistemdeki tedarikçi sayısı
 5. **Çalışma Süresi**: Uygulamanın ne kadar süredir çalıştığı
 
 ### Son İşlemler
@@ -82,35 +82,35 @@ Dashboard, işletmenizin genel durumunu gösterir.
 ### Son Faturalar
 
 - En son oluşturulan 5 fatura görüntülenir
-- Fatura numarası, müşteri adı, tutar ve durum bilgileri yer alır
+- Fatura numarası, tedarikçi adı, tutar ve durum bilgileri yer alır
 
 ---
 
-## Müşteri Yönetimi
+## Tedarikçi Yönetimi
 
-### Yeni Müşteri Ekleme
+### Yeni Tedarikçi Ekleme
 
-1. **Müşteriler** sekmesine gidin
-2. **"Yeni Müşteri"** butonuna tıklayın
+1. **Tedarikçiler** sekmesine gidin
+2. **"Yeni Tedarikçi"** butonuna tıklayın
 3. Gerekli bilgileri doldurun:
-   - **Ad**: Müşteri adı (zorunlu)
+   - **Ad**: Tedarikçi adı (zorunlu)
    - **Email**: Email adresi (zorunlu)
    - **Telefon**: Telefon numarası
    - **Adres**: Posta adresi
-4. **"Müşteri Ekle"** butonuna tıklayın
+4. **"Tedarikçi Ekle"** butonuna tıklayın
 
-### Müşteri Düzenleme
+### Tedarikçi Düzenleme
 
-1. Müşteri listesinde düzenlemek istediğiniz müşterinin yanındaki **"Düzenle"** butonuna tıklayın
+1. Tedarikçi listesinde düzenlemek istediğiniz tedarikçinin yanındaki **"Düzenle"** butonuna tıklayın
 2. Bilgileri güncelleyin
 3. **"Güncelle"** butonuna tıklayın
 
-### Müşteri Silme
+### Tedarikçi Silme
 
-1. Müşteri listesinde silmek istediğiniz müşterinin yanındaki **"Sil"** butonuna tıklayın
+1. Tedarikçi listesinde silmek istediğiniz tedarikçinin yanındaki **"Sil"** butonuna tıklayın
 2. Onay dialogunda **"Evet, Sil"** butonuna tıklayın
 
-⚠️ **Dikkat**: Müşteriyi sildikten sonra o müşteriye ait faturalar da silinir.
+⚠️ **Dikkat**: Tedarikçiyi sildikten sonra o tedarikçiye ait faturalar da silinir.
 
 ---
 
@@ -121,7 +121,7 @@ Dashboard, işletmenizin genel durumunu gösterir.
 1. **Faturalar** sekmesine gidin
 2. **"Yeni Fatura"** butonuna tıklayın
 3. Fatura bilgilerini doldurun:
-   - **Müşteri**: Dropdown'dan müşteri seçin
+   - **Tedarikçi**: Dropdown'dan tedarikçi seçin
    - **Fatura Tarihi**: Fatura düzenlenme tarihi
    - **Vade Tarihi**: Ödeme vade tarihi
    - **Notlar**: Ek açıklamalar (opsiyonel)
@@ -139,7 +139,7 @@ Dashboard, işletmenizin genel durumunu gösterir.
 ### Fatura Durumları
 
 - **Taslak**: Henüz gönderilmemiş fatura
-- **Gönderildi**: Müşteriye gönderilmiş fatura
+- **Gönderildi**: Tedarikçiye gönderilmiş fatura
 - **Ödendi**: Ödemesi alınmış fatura
 - **Gecikmiş**: Vade tarihi geçmiş, ödenmemiş fatura
 
@@ -226,7 +226,7 @@ Her fatura için mevcut işlemler:
 
 **"Filtreler"** butonuna tıklayarak erişin:
 
-1. **Müşteri**: Belirli müşteriye ait faturalar
+1. **Tedarikçi**: Belirli tedarikçiye ait faturalar
 2. **Fatura No**: Fatura numarasına göre arama
 3. **Fatura Tarihi**: Tarih aralığı
 4. **Vade Tarihi**: Vade tarih aralığı
@@ -271,7 +271,7 @@ Her fatura için mevcut işlemler:
 Fatura PDF'inde yer alan bilgiler:
 
 - **Şirket Bilgileri**: Fatura düzenleyen bilgileri
-- **Müşteri Bilgileri**: Fatura alan müşteri bilgileri
+- **Tedarikçi Bilgileri**: Fatura alan tedarikçi bilgileri
 - **Fatura Detayları**: Numara, tarih, vade
 - **Kalemler Tablosu**: Açıklama, miktar, birim fiyat, toplam
 - **Toplam Hesaplamalar**: Ara toplam, KDV, genel toplam

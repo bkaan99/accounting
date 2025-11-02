@@ -54,7 +54,7 @@ async function getCompanyStats(userId: string, userRole: string, userCompanyId: 
         : { role: { in: ['USER', 'ADMIN'] } } // SUPERADMIN için USER ve ADMIN
     } as any),
     
-    // Müşteri sayısı
+    // Tedarikçi sayısı
     prisma.client.count({
       where: userRole === 'ADMIN' ? { userId } : {}
     }),
@@ -194,7 +194,7 @@ export default async function AdminCompanyStatsPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Toplam Müşteri
+                Toplam Tedarikçi
               </CardTitle>
               <Building2 className="h-4 w-4 text-green-600" />
             </CardHeader>
@@ -338,7 +338,7 @@ export default async function AdminCompanyStatsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Çalışan</TableHead>
-                    <TableHead>Müşteri</TableHead>
+                    <TableHead>Tedarikçi</TableHead>
                     <TableHead>Fatura</TableHead>
                     <TableHead>İşlem</TableHead>
                   </TableRow>

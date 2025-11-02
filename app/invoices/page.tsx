@@ -357,7 +357,7 @@ export default function InvoicesPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Fatura No</TableHead>
-                    <TableHead>Müşteri</TableHead>
+                    <TableHead>Tedarikçi</TableHead>
                     <TableHead>Tarih</TableHead>
                     <TableHead>Vade</TableHead>
                     <TableHead>Tutar</TableHead>

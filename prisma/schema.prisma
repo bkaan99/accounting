@@ -253,7 +253,7 @@ model NotificationPreference {
   systemUpdate          Boolean  @default(true)
   
   // Kullanıcı Aktivite Bildirimleri
-  clientAdded           Boolean  @default(false)
+  clientAdded           Boolean  @default(true)
   bulkTransaction       Boolean  @default(true)
   reportGenerated       Boolean  @default(false)
   

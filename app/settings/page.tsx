@@ -857,6 +857,64 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
+                {/* Kullanıcı Aktivite Bildirimleri */}
+                <div>
+                  <h3 className="font-semibold mb-3 text-lg">Kullanıcı Aktivite Bildirimleri</h3>
+                  <div className="space-y-3">
+                    <label className="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+                      <div>
+                        <span className="font-medium">Yeni Tedarikçi Eklendi</span>
+                        <p className="text-sm text-gray-500">Tedarikçi eklendiğinde veya silindiğinde bildirim al</p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={notificationPreferences.clientAdded}
+                        onChange={(e) =>
+                          setNotificationPreferences({
+                            ...notificationPreferences,
+                            clientAdded: e.target.checked,
+                          })
+                        }
+                        className="w-5 h-5"
+                      />
+                    </label>
+                    <label className="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+                      <div>
+                        <span className="font-medium">Toplu İşlem</span>
+                        <p className="text-sm text-gray-500">Toplu işlem yapıldığında bildirim al</p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={notificationPreferences.bulkTransaction}
+                        onChange={(e) =>
+                          setNotificationPreferences({
+                            ...notificationPreferences,
+                            bulkTransaction: e.target.checked,
+                          })
+                        }
+                        className="w-5 h-5"
+                      />
+                    </label>
+                    <label className="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+                      <div>
+                        <span className="font-medium">Rapor Oluşturuldu</span>
+                        <p className="text-sm text-gray-500">Rapor oluşturulduğunda bildirim al</p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={notificationPreferences.reportGenerated}
+                        onChange={(e) =>
+                          setNotificationPreferences({
+                            ...notificationPreferences,
+                            reportGenerated: e.target.checked,
+                          })
+                        }
+                        className="w-5 h-5"
+                      />
+                    </label>
+                  </div>
+                </div>
+
                 <div className="flex justify-end pt-4 border-t">
                   <Button type="submit" disabled={isSavingPreferences}>
                     {isSavingPreferences ? 'Kaydediliyor...' : 'Tercihleri Kaydet'}

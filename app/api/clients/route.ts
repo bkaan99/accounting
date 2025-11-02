@@ -107,7 +107,13 @@ export async function POST(request: NextRequest) {
         clientId: client.id,
         clientName: validatedData.name,
       },
-    }).catch((err) => console.error('Tedarikçi eklendi bildirimi hatası:', err))
+    }).then((notification) => {
+      if (notification) {
+        console.log('✅ Tedarikçi eklendi bildirimi gönderildi:', notification.id)
+      } else {
+        console.log('⚠️ Tedarikçi eklendi bildirimi gönderilmedi (tercih kapalı olabilir)')
+      }
+    }).catch((err) => console.error('❌ Tedarikçi eklendi bildirimi hatası:', err))
 
     return NextResponse.json(client, { status: 201 })
   } catch (error) {

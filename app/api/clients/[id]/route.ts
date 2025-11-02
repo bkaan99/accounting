@@ -87,7 +87,13 @@ export async function DELETE(
         clientName: client.name,
         action: 'deleted',
       },
-    }).catch((err) => console.error('Tedarikçi silindi bildirimi hatası:', err))
+    }).then((notification) => {
+      if (notification) {
+        console.log('✅ Tedarikçi silindi bildirimi gönderildi:', notification.id)
+      } else {
+        console.log('⚠️ Tedarikçi silindi bildirimi gönderilmedi (tercih kapalı olabilir)')
+      }
+    }).catch((err) => console.error('❌ Tedarikçi silindi bildirimi hatası:', err))
 
     return NextResponse.json({ message: 'Tedarikçi silindi' })
   } catch (error) {

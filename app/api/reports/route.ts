@@ -19,6 +19,17 @@ export async function GET(request: NextRequest) {
     const endDate = new Date()
     const startDate = subMonths(endDate, months - 1)
 
+    // Transaction filter - şirket bazlı
+    const transactionWhereBase: any = { isDeleted: false }
+    if (session.user.role !== 'SUPERADMIN') {
+      if (session.user.companyId) {
+        transactionWhereBase.companyId = session.user.companyId
+      } else {
+        // Şirketi yoksa boş sonuç döndür
+        transactionWhereBase.companyId = null
+      }
+    }
+
     // Monthly Income/Expense Data
     const monthlyData = []
     for (let i = 0; i < months; i++) {
@@ -29,7 +40,7 @@ export async function GET(request: NextRequest) {
       const [income, expense] = await Promise.all([
         prisma.transaction.aggregate({
           where: {
-            userId: session.user.id,
+            ...transactionWhereBase,
             type: 'INCOME',
             date: {
               gte: monthStart,
@@ -40,7 +51,7 @@ export async function GET(request: NextRequest) {
         }),
         prisma.transaction.aggregate({
           where: {
-            userId: session.user.id,
+            ...transactionWhereBase,
             type: 'EXPENSE',
             date: {
               gte: monthStart,
@@ -63,7 +74,7 @@ export async function GET(request: NextRequest) {
     const expenseCategories = await prisma.transaction.groupBy({
       by: ['category'],
       where: {
-        userId: session.user.id,
+        ...transactionWhereBase,
         type: 'EXPENSE',
         date: {
           gte: startDate,
@@ -84,11 +95,20 @@ export async function GET(request: NextRequest) {
     }))
 
     // Invoice Status Distribution
+    // Süperadmin tüm faturaları görebilir
+    const invoiceStatusWhere: any = { isDeleted: false }
+    if (session.user.role !== 'SUPERADMIN') {
+      if (session.user.companyId) {
+        invoiceStatusWhere.companyId = session.user.companyId
+      } else {
+        // Şirketi yoksa boş sonuç döndür
+        invoiceStatusWhere.companyId = null
+      }
+    }
+
     const invoiceStatus = await prisma.invoice.groupBy({
       by: ['status'],
-      where: {
-        userId: session.user.id,
-      },
+      where: invoiceStatusWhere,
       _count: { id: true },
       _sum: { totalAmount: true },
     })
@@ -100,12 +120,21 @@ export async function GET(request: NextRequest) {
     }))
 
     // Top Clients by Revenue
+    const topClientsWhere: any = {
+      status: 'PAID',
+      isDeleted: false,
+    }
+    if (session.user.role !== 'SUPERADMIN') {
+      if (session.user.companyId) {
+        topClientsWhere.companyId = session.user.companyId
+      } else {
+        topClientsWhere.companyId = null
+      }
+    }
+
     const topClients = await prisma.invoice.groupBy({
       by: ['clientId'],
-      where: {
-        userId: session.user.id,
-        status: 'PAID',
-      },
+      where: topClientsWhere,
       _sum: { totalAmount: true },
       orderBy: {
         _sum: {
@@ -145,7 +174,7 @@ export async function GET(request: NextRequest) {
       Promise.all([
         prisma.transaction.aggregate({
           where: {
-            userId: session.user.id,
+            ...transactionWhereBase,
             type: 'INCOME',
             date: {
               gte: startOfMonth(currentMonth),
@@ -156,7 +185,7 @@ export async function GET(request: NextRequest) {
         }),
         prisma.transaction.aggregate({
           where: {
-            userId: session.user.id,
+            ...transactionWhereBase,
             type: 'EXPENSE',
             date: {
               gte: startOfMonth(currentMonth),
@@ -169,7 +198,7 @@ export async function GET(request: NextRequest) {
       Promise.all([
         prisma.transaction.aggregate({
           where: {
-            userId: session.user.id,
+            ...transactionWhereBase,
             type: 'INCOME',
             date: {
               gte: startOfMonth(previousMonth),
@@ -180,7 +209,7 @@ export async function GET(request: NextRequest) {
         }),
         prisma.transaction.aggregate({
           where: {
-            userId: session.user.id,
+            ...transactionWhereBase,
             type: 'EXPENSE',
             date: {
               gte: startOfMonth(previousMonth),

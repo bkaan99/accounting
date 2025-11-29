@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { invoiceSchema } from '@/lib/validations'
 import { createNotification } from '@/lib/notifications'
+import { updateInvoiceStatus } from '@/lib/invoice-status'
 
 export async function GET() {
   try {
@@ -16,6 +17,9 @@ export async function GET() {
     // Süperadmin tüm faturaları görebilir
     if (session.user.role === 'SUPERADMIN') {
       const invoices = await prisma.invoice.findMany({
+        where: {
+          isDeleted: false
+        },
         include: {
           client: true,
           user: {
@@ -35,7 +39,37 @@ export async function GET() {
         orderBy: { createdAt: 'desc' },
       })
 
-      return NextResponse.json(invoices)
+      // Gecikmiş faturaları otomatik güncelle
+      const now = new Date()
+      const overdueInvoiceIds: string[] = []
+      
+      for (const invoice of invoices) {
+        if (invoice.dueDate < now && invoice.status !== 'PAID' && invoice.status !== 'OVERDUE') {
+          overdueInvoiceIds.push(invoice.id)
+        }
+      }
+
+      // Bulk update yap
+      if (overdueInvoiceIds.length > 0) {
+        await prisma.invoice.updateMany({
+          where: {
+            id: { in: overdueInvoiceIds }
+          },
+          data: {
+            status: 'OVERDUE'
+          }
+        })
+      }
+
+      // Güncellenmiş durumları response'a ekle
+      const updatedInvoices = invoices.map(invoice => {
+        if (overdueInvoiceIds.includes(invoice.id)) {
+          return { ...invoice, status: 'OVERDUE' as const }
+        }
+        return invoice
+      })
+
+      return NextResponse.json(updatedInvoices)
     }
 
     // Admin ve User sadece kendi şirketinin faturalarını görebilir
@@ -58,7 +92,38 @@ export async function GET() {
         orderBy: { createdAt: 'desc' },
       })
 
-      return NextResponse.json(invoices)
+      // Gecikmiş faturaları otomatik güncelle
+      const now = new Date()
+      const overdueInvoiceIds: string[] = []
+      
+      for (const invoice of invoices) {
+        if (invoice.dueDate < now && invoice.status !== 'PAID' && invoice.status !== 'OVERDUE') {
+          overdueInvoiceIds.push(invoice.id)
+        }
+      }
+
+      // Bulk update yap
+      if (overdueInvoiceIds.length > 0) {
+        await prisma.invoice.updateMany({
+          where: {
+            id: { in: overdueInvoiceIds },
+            companyId: session.user.companyId
+          },
+          data: {
+            status: 'OVERDUE'
+          }
+        })
+      }
+
+      // Güncellenmiş durumları response'a ekle
+      const updatedInvoices = invoices.map(invoice => {
+        if (overdueInvoiceIds.includes(invoice.id)) {
+          return { ...invoice, status: 'OVERDUE' as const }
+        }
+        return invoice
+      })
+
+      return NextResponse.json(updatedInvoices)
     }
 
     return NextResponse.json([])

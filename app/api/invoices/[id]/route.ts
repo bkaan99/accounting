@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createNotification } from '@/lib/notifications'
+import { updateInvoiceStatus } from '@/lib/invoice-status'
 
 export async function GET(
   request: NextRequest,
@@ -98,13 +99,23 @@ export async function PUT(
           ? { id: params.id }
           : { id: params.id, companyId: session.user.companyId }
         
+        // Vade tarihine göre otomatik durum belirleme
+        const now = new Date()
+        const dueDateObj = new Date(dueDate)
+        let finalStatus = status
+        
+        // Eğer vade tarihi geçmişse ve fatura ödenmemişse, OVERDUE yap
+        if (dueDateObj < now && status !== 'PAID') {
+          finalStatus = 'OVERDUE'
+        }
+
         const updatedInvoice = await tx.invoice.update({
           where: whereClause,
           data: {
             clientId,
             issueDate: new Date(issueDate),
-            dueDate: new Date(dueDate),
-            status,
+            dueDate: dueDateObj,
+            status: finalStatus,
             notes,
             totalAmount,
             updatedAt: new Date(),
@@ -122,6 +133,14 @@ export async function PUT(
             items: true,
           }
         })
+        
+        // Fatura durumunu kontrol et ve güncelle (transaction içinde)
+        await updateInvoiceStatus(
+          updatedInvoice.id,
+          finalStatus === 'PAID',
+          updatedInvoice.dueDate,
+          tx
+        )
 
         // İlgili transaction'ı güncelle
         const transactionWhereClause = session.user.role === 'SUPERADMIN'
@@ -174,10 +193,23 @@ export async function PUT(
         return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
       }
 
+      // Vade tarihine göre otomatik durum kontrolü
+      const now = new Date()
+      let finalStatus = status
+      
+      // Eğer durum değiştirilmiyorsa ve vade tarihi geçmişse, otomatik OVERDUE yap
+      if (oldInvoice.dueDate < now && status !== 'PAID' && status === oldInvoice.status) {
+        finalStatus = 'OVERDUE'
+      }
+      // Eğer durum manuel olarak değiştiriliyorsa ama vade tarihi geçmişse ve PAID değilse, OVERDUE yap
+      else if (oldInvoice.dueDate < now && status !== 'PAID' && status !== 'OVERDUE') {
+        finalStatus = 'OVERDUE'
+      }
+
       const invoice = await prisma.invoice.update({
         where: whereClause,
         data: {
-          status,
+          status: finalStatus,
           notes,
           updatedAt: new Date(),
         },
@@ -186,6 +218,13 @@ export async function PUT(
           items: true,
         }
       })
+      
+      // Fatura durumunu kontrol et ve güncelle
+      await updateInvoiceStatus(
+        invoice.id,
+        finalStatus === 'PAID',
+        invoice.dueDate
+      )
 
       // Durum değiştiyse bildirim gönder
       if (oldInvoice.status !== status) {

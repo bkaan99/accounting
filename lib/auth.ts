@@ -78,6 +78,8 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: 'jwt',
+    maxAge: 24 * 60 * 60, // 1 gün
+    updateAge: 60 * 60,   // Her 1 saatte bir yenile
   },
   callbacks: {
     async jwt({ token, user, trigger }) {
@@ -91,14 +93,6 @@ export const authOptions: NextAuthOptions = {
       if (trigger === 'update' && token.sub) {
         const freshUser = await prisma.user.findUnique({
           where: { id: token.sub },
-          include: {
-            company: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
           select: {
             id: true,
             name: true,

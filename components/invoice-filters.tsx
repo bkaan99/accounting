@@ -13,7 +13,7 @@ interface Invoice {
   clientName: string
   clientEmail: string
   amount: number
-  status: 'UNPAID' | 'PAID' | 'OVERDUE'
+  status: 'DRAFT' | 'SENT' | 'UNPAID' | 'PAID' | 'OVERDUE'
   date: string
   dueDate: string
   createdAt: string
@@ -22,7 +22,7 @@ interface Invoice {
 
 interface Filters {
   client: string
-  status: 'ALL' | 'UNPAID' | 'PAID' | 'OVERDUE'
+  status: 'ALL' | 'DRAFT' | 'SENT' | 'UNPAID' | 'PAID' | 'OVERDUE'
   dateFrom: string
   dateTo: string
   dueDateFrom: string

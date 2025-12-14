@@ -213,7 +213,7 @@ export default async function AdminSystemPage() {
                 <Zap className="h-8 w-8 text-yellow-600 mb-2" />
                 <h3 className="font-medium">Cache Temizle</h3>
                 <p className="text-sm text-gray-600">
-                  Uygulama cache'ini temizle
+                  Uygulama cache&apos;ini temizle
                 </p>
               </div>
 

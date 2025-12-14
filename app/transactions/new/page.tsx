@@ -27,6 +27,7 @@ interface CashAccount {
   name: string
   type: 'CASH' | 'CREDIT_CARD' | 'BANK_ACCOUNT'
   balance: number
+  isActive: boolean
 }
 
 // Predefined categories

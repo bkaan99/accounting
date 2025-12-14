@@ -70,7 +70,7 @@ export default function AdminEmployeesPage() {
 
   // Yetki kontrolü - sadece ADMIN ve SUPERADMIN
   useEffect(() => {
-    if (session && !['ADMIN', 'SUPERADMIN'].includes(session.user.role)) {
+    if (session && session.user.role && !['ADMIN', 'SUPERADMIN'].includes(session.user.role)) {
       router.push('/dashboard')
     }
   }, [session, router])

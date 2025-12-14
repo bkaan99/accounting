@@ -97,7 +97,7 @@ export default function NewCashAccountPage() {
             Yeni Kasa Oluştur
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            {session?.user?.company?.name || 'Şirketiniz'} için yeni bir kasa hesabı oluşturun
+            {session?.user?.company || 'Şirketiniz'} için yeni bir kasa hesabı oluşturun
           </p>
         </div>
 

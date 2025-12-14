@@ -135,7 +135,6 @@ export default function InvoiceDetailPage() {
   const handleDownloadPDF = () => {
     if (invoice) {
       downloadInvoicePDF({
-        id: invoice.id,
         number: invoice.number,
         issueDate: invoice.issueDate,
         dueDate: invoice.dueDate,

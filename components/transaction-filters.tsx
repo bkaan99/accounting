@@ -23,6 +23,9 @@ interface Transaction {
   date: string
   createdAt: string
   updatedAt: string
+  isPaid: boolean
+  invoiceId?: string
+  cashAccountId?: string
 }
 
 interface TransactionFiltersProps {

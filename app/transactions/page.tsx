@@ -293,7 +293,7 @@ export default function TransactionsPage() {
                               {transaction.invoice.number}
                             </Link>
                             <span className="text-xs text-gray-500">
-                              {transaction.invoice.client?.name}
+                              {transaction.invoice.clientInfo?.name}
                             </span>
                           </div>
                         ) : (

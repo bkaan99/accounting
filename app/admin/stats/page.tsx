@@ -59,7 +59,7 @@ async function getGlobalStats() {
       },
     }),
     prisma.user.findMany({
-      where: { company: { not: null } },
+      where: { companyId: { not: null } },
       select: {
         company: true,
         _count: {
@@ -253,7 +253,7 @@ export default async function AdminStatsPage() {
                         {user.company && (
                           <div className="text-sm flex items-center">
                             <Building2 className="h-3 w-3 mr-1" />
-                            {user.company}
+                            {user.company.name}
                           </div>
                         )}
                       </TableCell>
@@ -303,7 +303,7 @@ export default async function AdminStatsPage() {
                       <TableCell>
                         <div className="font-medium flex items-center">
                           <Building2 className="h-4 w-4 mr-2" />
-                          {company.company}
+                          {company.company?.name || 'Şirket Yok'}
                         </div>
                       </TableCell>
                       <TableCell>{company._count.clients}</TableCell>

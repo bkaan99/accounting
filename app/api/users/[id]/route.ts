@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { UserUpdateSchema } from '@/lib/validations'
 
 export async function PUT(
   request: Request,
@@ -14,39 +15,46 @@ export async function PUT(
       return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 })
     }
 
-    const { name, email, company, phone, role } = await request.json()
+    const body = await request.json()
+    
+    // Zod validation
+    const validatedData = UserUpdateSchema.parse(body)
+    const { name, email, company, phone, role } = validatedData
 
     // Kendi hesabının rolünü değiştirmeye izin verme
-    if (params.id === session.user.id && role !== session.user.role) {
+    if (params.id === session.user.id && role && role !== session.user.role) {
       return NextResponse.json(
         { error: 'Kendi rolünüzü değiştiremezsiniz' },
         { status: 400 }
       )
     }
 
-    // Email benzersizliği kontrolü
-    const existingUser = await prisma.user.findFirst({
-      where: {
-        email,
-        NOT: { id: params.id }
-      }
-    })
+    // Email benzersizliği kontrolü (eğer email değiştiriliyorsa)
+    if (email) {
+      const existingUser = await prisma.user.findFirst({
+        where: {
+          email,
+          NOT: { id: params.id }
+        }
+      })
 
-    if (existingUser) {
-      return NextResponse.json(
-        { error: 'Bu email adresi zaten kullanılıyor' },
-        { status: 400 }
-      )
+      if (existingUser) {
+        return NextResponse.json(
+          { error: 'Bu email adresi zaten kullanılıyor' },
+          { status: 400 }
+        )
+      }
     }
 
     const updatedUser = await prisma.user.update({
       where: { id: params.id },
       data: {
-        name,
-        email,
-        company,
-        phone,
-        role,
+        ...(name && { name }),
+        ...(email && { email }),
+        ...(company && { company }),
+        ...(phone !== undefined && { phone }),
+        ...(role && { role }),
+        ...(validatedData.companyId !== undefined && { companyId: validatedData.companyId }),
       },
       select: {
         id: true,
@@ -67,8 +75,17 @@ export async function PUT(
     })
 
     return NextResponse.json(updatedUser)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Kullanıcı güncellenirken hata:', error)
+    
+    // Zod validation errors
+    if (error.name === 'ZodError') {
+      return NextResponse.json(
+        { error: 'Geçersiz veri', details: error.errors },
+        { status: 400 }
+      )
+    }
+    
     return NextResponse.json(
       { error: 'Kullanıcı güncellenemedi' },
       { status: 500 }

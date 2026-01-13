@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { CashAccountSchema } from '@/lib/validations'
 
 export async function GET() {
   try {
@@ -82,22 +83,10 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, type, description, initialBalance = 0 } = body
-
-    // Validation
-    if (!name || !type) {
-      return NextResponse.json(
-        { error: 'Kasa adı ve türü gereklidir' },
-        { status: 400 }
-      )
-    }
-
-    if (!['CASH', 'CREDIT_CARD', 'BANK_ACCOUNT'].includes(type)) {
-      return NextResponse.json(
-        { error: 'Geçersiz kasa türü' },
-        { status: 400 }
-      )
-    }
+    
+    // Zod validation
+    const validatedData = CashAccountSchema.parse(body)
+    const { name, type, description, initialBalance = 0 } = validatedData
 
     // Kullanıcının şirketi yoksa kasa oluşturamaz
     if (!session.user.companyId) {
@@ -123,20 +112,31 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const initialBalanceValue = typeof initialBalance === 'number' ? initialBalance : parseFloat(initialBalance) || 0
+    
     const cashAccount = await prisma.cashAccount.create({
       data: {
         companyId: session.user.companyId,
         name,
         type,
-        initialBalance: parseFloat(initialBalance),
-        balance: parseFloat(initialBalance), // Başlangıçta ikisi de aynı
+        initialBalance: initialBalanceValue,
+        balance: initialBalanceValue, // Başlangıçta ikisi de aynı
         description: description || null,
       },
     })
 
     return NextResponse.json(cashAccount, { status: 201 })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Cash account creation error:', error)
+    
+    // Zod validation errors
+    if (error.name === 'ZodError') {
+      return NextResponse.json(
+        { error: 'Geçersiz veri', details: error.errors },
+        { status: 400 }
+      )
+    }
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

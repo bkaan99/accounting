@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { updateInvoiceStatus } from '@/lib/invoice-status'
 import { createNotification } from '@/lib/notifications'
+import { TransactionUpdateSchema } from '@/lib/validations'
 
 export async function GET(
   request: NextRequest,
@@ -49,8 +50,7 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { type, category, amount, description, date, cashAccountId, isPaid } = body
-
+    
     // Mevcut işlemi getir
     const existingTransaction = await prisma.transaction.findUnique({
       where: { id: params.id },
@@ -64,29 +64,17 @@ export async function PUT(
     // Faturaya bağlı işlemler için sadece kasa ve ödeme durumu güncellenebilir
     const isInvoiceTransaction = !!existingTransaction.invoiceId
 
-    // Validation - Faturaya bağlı işlemler için farklı validasyon
-    if (!isInvoiceTransaction) {
-      if (!type || !category || !amount || !date) {
-        return NextResponse.json(
-          { error: 'Tüm gerekli alanları doldurunuz' },
-          { status: 400 }
-        )
-      }
-
-      if (!['INCOME', 'EXPENSE'].includes(type)) {
-        return NextResponse.json(
-          { error: 'Geçersiz işlem türü' },
-          { status: 400 }
-        )
-      }
-
-      if (amount <= 0) {
-        return NextResponse.json(
-          { error: 'Tutar pozitif olmalıdır' },
-          { status: 400 }
-        )
-      }
+    // Zod validation - Faturaya bağlı işlemler için sadece cashAccountId ve isPaid validate edilir
+    let validatedData
+    if (isInvoiceTransaction) {
+      // Faturaya bağlı işlemler için sadece kasa ve ödeme durumu
+      validatedData = TransactionUpdateSchema.pick({ cashAccountId: true, isPaid: true }).parse(body)
+    } else {
+      // Normal işlemler için tüm alanlar
+      validatedData = TransactionUpdateSchema.parse(body)
     }
+    
+    const { type, category, amount, description, date, cashAccountId, isPaid } = validatedData
 
     // Yetki kontrolü
     if (session.user.role !== 'SUPERADMIN' && existingTransaction.companyId !== session.user.companyId) {
@@ -148,11 +136,15 @@ export async function PUT(
 
       // Faturaya bağlı değilse diğer alanları da güncelle
       if (!isInvoiceTransaction) {
-        updateData.type = type
-        updateData.category = category
-        updateData.amount = parseFloat(amount)
-        updateData.description = description || null
-        updateData.date = new Date(date)
+        if (type) updateData.type = type
+        if (category) updateData.category = category
+        if (amount !== undefined) {
+          updateData.amount = typeof amount === 'number' ? amount : parseFloat(amount)
+        }
+        if (description !== undefined) updateData.description = description || null
+        if (date) {
+          updateData.date = date instanceof Date ? date : new Date(date)
+        }
       }
 
       const updatedTransaction = await tx.transaction.update({
@@ -162,9 +154,10 @@ export async function PUT(
 
       // Yeni kasa bakiyesini güncelle (eğer ödenmişse)
       if (cashAccountId && updatedTransaction.isPaid) {
+        const amountValue = updatedTransaction.amount
         const newBalanceChange = updatedTransaction.type === 'INCOME' 
-          ? updatedTransaction.amount 
-          : -updatedTransaction.amount
+          ? amountValue 
+          : -amountValue
         
         await tx.cashAccount.update({
           where: { id: cashAccountId },
@@ -217,8 +210,17 @@ export async function PUT(
     }
 
     return NextResponse.json(transaction)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Transaction update error:', error)
+    
+    // Zod validation errors
+    if (error.name === 'ZodError') {
+      return NextResponse.json(
+        { error: 'Geçersiz veri', details: error.errors },
+        { status: 400 }
+      )
+    }
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

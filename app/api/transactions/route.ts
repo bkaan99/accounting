@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createNotification } from '@/lib/notifications'
+import { TransactionCreateSchema } from '@/lib/validations'
 
 export async function GET() {
   try {
@@ -111,29 +112,10 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { type, category, amount, description, date, cashAccountId, isPaid = false } = body
-
-    // Validation
-    if (!type || !category || !amount || !date) {
-      return NextResponse.json(
-        { error: 'Tüm gerekli alanları doldurunuz' },
-        { status: 400 }
-      )
-    }
-
-    if (!['INCOME', 'EXPENSE'].includes(type)) {
-      return NextResponse.json(
-        { error: 'Geçersiz işlem türü' },
-        { status: 400 }
-      )
-    }
-
-    if (amount <= 0) {
-      return NextResponse.json(
-        { error: 'Tutar pozitif olmalıdır' },
-        { status: 400 }
-      )
-    }
+    
+    // Zod validation
+    const validatedData = TransactionCreateSchema.parse(body)
+    const { type, category, amount, description, date, cashAccountId, isPaid = false } = validatedData
 
     // Kullanıcının şirketi yoksa işlem oluşturamaz
     if (!session.user.companyId) {
@@ -181,16 +163,17 @@ export async function POST(request: NextRequest) {
           cashAccountId: cashAccountId || null,
           type,
           category,
-          amount: parseFloat(amount),
+          amount: typeof amount === 'number' ? amount : parseFloat(amount),
           description: description || null,
-          date: new Date(date),
+          date: date instanceof Date ? date : new Date(date),
           isPaid,
         }
       })
 
       // Eğer kasa seçildiyse ve işlem ödendiyse kasa bakiyesini güncelle
       if (cashAccountId && isPaid) {
-        const balanceChange = type === 'INCOME' ? parseFloat(amount) : -parseFloat(amount)
+        const amountValue = typeof amount === 'number' ? amount : parseFloat(amount)
+        const balanceChange = type === 'INCOME' ? amountValue : -amountValue
         
         await tx.cashAccount.update({
           where: { id: cashAccountId },
@@ -212,19 +195,20 @@ export async function POST(request: NextRequest) {
     })
 
     const largeTransactionLimit = preference?.largeTransactionLimit || 10000
-    if (parseFloat(amount) >= largeTransactionLimit) {
+    const amountValue = typeof amount === 'number' ? amount : parseFloat(amount)
+    if (amountValue >= largeTransactionLimit) {
       createNotification({
         userId: session.user.id,
         companyId: session.user.companyId,
         type: 'LARGE_TRANSACTION',
         priority: 'HIGH',
         title: 'Büyük İşlem Tespit Edildi',
-        message: `${type === 'INCOME' ? 'Gelir' : 'Gider'} işlemi: ${category} - ₺${parseFloat(amount).toFixed(2)}`,
+        message: `${type === 'INCOME' ? 'Gelir' : 'Gider'} işlemi: ${category} - ₺${amountValue.toFixed(2)}`,
         link: `/transactions`,
         metadata: {
           transactionId: transaction.id,
           type,
-          amount: parseFloat(amount),
+          amount: amountValue,
           category,
         },
       }).catch((err) => console.error('Büyük işlem bildirimi hatası:', err))
@@ -278,8 +262,17 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(transaction, { status: 201 })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Transaction creation error:', error)
+    
+    // Zod validation errors
+    if (error.name === 'ZodError') {
+      return NextResponse.json(
+        { error: 'Geçersiz veri', details: error.errors },
+        { status: 400 }
+      )
+    }
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

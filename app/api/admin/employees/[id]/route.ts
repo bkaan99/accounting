@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { UserUpdateSchema } from '@/lib/validations'
 
 // ADMIN için çalışan güncelleme
 export async function PUT(
@@ -16,7 +17,11 @@ export async function PUT(
       return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 })
     }
 
-    const { name, email, phone, role } = await request.json()
+    const body = await request.json()
+    
+    // Zod validation
+    const validatedData = UserUpdateSchema.parse(body)
+    const { name, email, phone, role } = validatedData
 
     // ADMIN sadece USER rolüne değiştirebilir
     if (session.user.role === 'ADMIN' && role && role !== 'USER') {
@@ -34,28 +39,30 @@ export async function PUT(
       )
     }
 
-    // Email benzersizliği kontrolü
-    const existingUser = await prisma.user.findFirst({
-      where: {
-        email,
-        NOT: { id: params.id }
-      }
-    })
+    // Email benzersizliği kontrolü (eğer email değiştiriliyorsa)
+    if (email) {
+      const existingUser = await prisma.user.findFirst({
+        where: {
+          email,
+          NOT: { id: params.id }
+        }
+      })
 
-    if (existingUser) {
-      return NextResponse.json(
-        { error: 'Bu email adresi zaten kullanılıyor' },
-        { status: 400 }
-      )
+      if (existingUser) {
+        return NextResponse.json(
+          { error: 'Bu email adresi zaten kullanılıyor' },
+          { status: 400 }
+        )
+      }
     }
 
     const updatedEmployee = await prisma.user.update({
       where: { id: params.id },
       data: {
-        name,
-        email,
-        phone,
-        role: role || 'USER',
+        ...(name && { name }),
+        ...(email && { email }),
+        ...(phone !== undefined && { phone }),
+        ...(role && { role }),
       },
       select: {
         id: true,
@@ -75,8 +82,17 @@ export async function PUT(
     })
 
     return NextResponse.json(updatedEmployee)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Çalışan güncellenirken hata:', error)
+    
+    // Zod validation errors
+    if (error.name === 'ZodError') {
+      return NextResponse.json(
+        { error: 'Geçersiz veri', details: error.errors },
+        { status: 400 }
+      )
+    }
+    
     return NextResponse.json(
       { error: 'Çalışan güncellenemedi' },
       { status: 500 }

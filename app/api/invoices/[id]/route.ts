@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createNotification } from '@/lib/notifications'
 import { updateInvoiceStatus } from '@/lib/invoice-status'
+import { InvoiceUpdateSchema, invoiceSchema } from '@/lib/validations'
 
 export async function GET(
   request: NextRequest,
@@ -72,8 +73,9 @@ export async function PUT(
     
     // Sadece durum güncellemesi mi yoksa tam düzenleme mi?
     if (body.items && body.clientId) {
-      // Tam fatura düzenlemesi
-      const { clientId, issueDate, dueDate, status, notes, items } = body
+      // Tam fatura düzenlemesi - Zod validation
+      const validatedData = invoiceSchema.parse(body)
+      const { clientId, issueDate, dueDate, status, notes, items } = validatedData
 
       // Calculate total amount
       const totalAmount = items.reduce(
@@ -178,7 +180,8 @@ export async function PUT(
       return NextResponse.json(invoice)
     } else {
       // Sadece durum güncellemesi - transaction'a dokunma
-      const { status, notes } = body
+      const validatedData = InvoiceUpdateSchema.pick({ status: true, notes: true }).parse(body)
+      const { status, notes } = validatedData
 
       const whereClause = session.user.role === 'SUPERADMIN' 
         ? { id: params.id }
@@ -265,8 +268,17 @@ export async function PUT(
 
       return NextResponse.json(invoice)
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Invoice update error:', error)
+    
+    // Zod validation errors
+    if (error.name === 'ZodError') {
+      return NextResponse.json(
+        { error: 'Geçersiz veri', details: error.errors },
+        { status: 400 }
+      )
+    }
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

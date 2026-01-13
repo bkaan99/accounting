@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { CashAccountUpdateSchema } from '@/lib/validations'
 
 export async function GET(
   request: NextRequest,
@@ -79,7 +80,10 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { name, type, description, isActive } = body
+    
+    // Zod validation
+    const validatedData = CashAccountUpdateSchema.parse(body)
+    const { name, type, description, isActive } = validatedData
 
     const existingCashAccount = await prisma.cashAccount.findUnique({
       where: { id: params.id },
@@ -92,14 +96,6 @@ export async function PUT(
     // Yetki kontrolü
     if (session.user.role !== 'SUPERADMIN' && existingCashAccount.companyId !== session.user.companyId) {
       return NextResponse.json({ error: 'Bu kasayı düzenleme yetkiniz yok' }, { status: 403 })
-    }
-
-    // Validation
-    if (type && !['CASH', 'CREDIT_CARD', 'BANK_ACCOUNT'].includes(type)) {
-      return NextResponse.json(
-        { error: 'Geçersiz kasa türü' },
-        { status: 400 }
-      )
     }
 
     // Aynı isimde başka kasa var mı kontrol et
@@ -126,14 +122,23 @@ export async function PUT(
       data: {
         ...(name && { name }),
         ...(type && { type }),
-        ...(description !== undefined && { description }),
+        ...(description !== undefined && { description: description === null ? null : description }),
         ...(isActive !== undefined && { isActive }),
       },
     })
 
     return NextResponse.json(updatedCashAccount)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Cash account update error:', error)
+    
+    // Zod validation errors
+    if (error.name === 'ZodError') {
+      return NextResponse.json(
+        { error: 'Geçersiz veri', details: error.errors },
+        { status: 400 }
+      )
+    }
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

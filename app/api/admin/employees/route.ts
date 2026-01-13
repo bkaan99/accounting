@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
+import { UserCreateSchema } from '@/lib/validations'
 
 // ADMIN için çalışanları getir (sadece kendi şirketindeki USER'ları)
 export async function GET() {
@@ -71,7 +72,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 })
     }
 
-    const { name, email, phone, role } = await request.json()
+    const body = await request.json()
+    
+    // Zod validation
+    const validatedData = UserCreateSchema.parse(body)
+    const { name, email, phone, role } = validatedData
 
     // ADMIN sadece USER rolü ekleyebilir
     if (session.user.role === 'ADMIN' && role !== 'USER') {
@@ -125,8 +130,17 @@ export async function POST(request: Request) {
     })
 
     return NextResponse.json(newEmployee)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Çalışan oluşturulurken hata:', error)
+    
+    // Zod validation errors
+    if (error.name === 'ZodError') {
+      return NextResponse.json(
+        { error: 'Geçersiz veri', details: error.errors },
+        { status: 400 }
+      )
+    }
+    
     return NextResponse.json(
       { error: 'Çalışan oluşturulamadı' },
       { status: 500 }

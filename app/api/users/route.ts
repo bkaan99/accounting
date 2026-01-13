@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createNotification } from '@/lib/notifications'
+import { UserCreateSchema } from '@/lib/validations'
 
 export async function GET() {
   try {
@@ -50,7 +51,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 })
     }
 
-    const { name, email, phone, address, role, companyId } = await request.json()
+    const body = await request.json()
+    
+    // Zod validation
+    const validatedData = UserCreateSchema.parse(body)
+    const { name, email, phone, address, role, companyId } = validatedData
 
     // Email benzersizliği kontrolü
     const existingUser = await prisma.user.findUnique({
@@ -126,8 +131,17 @@ export async function POST(request: Request) {
     )
 
     return NextResponse.json(newUser)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Kullanıcı oluşturulurken hata:', error)
+    
+    // Zod validation errors
+    if (error.name === 'ZodError') {
+      return NextResponse.json(
+        { error: 'Geçersiz veri', details: error.errors },
+        { status: 400 }
+      )
+    }
+    
     return NextResponse.json(
       { error: 'Kullanıcı oluşturulamadı' },
       { status: 500 }

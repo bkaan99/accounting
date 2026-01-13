@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { CompanyUpdateSchema } from '@/lib/validations'
 
 export async function GET(request: NextRequest) {
   try {
@@ -127,7 +128,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 
     const body = await request.json()
-    const { name, taxId, address, phone, email, website, logo } = body
+    
+    // Zod validation
+    const validatedData = CompanyUpdateSchema.parse(body)
+    const { name, taxId, address, phone, email, website, logo } = validatedData
 
     // TaxId benzersizliği kontrolü (kendi ID'si hariç)
     if (taxId) {
@@ -149,13 +153,13 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const company = await prisma.company.update({
       where: { id: params.id },
       data: {
-        name,
-        taxId,
-        address,
-        phone,
-        email,
-        website,
-        logo,
+        ...(name && { name }),
+        ...(taxId !== undefined && { taxId }),
+        ...(address !== undefined && { address }),
+        ...(phone !== undefined && { phone }),
+        ...(email !== undefined && { email }),
+        ...(website !== undefined && { website }),
+        ...(logo !== undefined && { logo }),
       },
       include: {
         _count: {
@@ -170,8 +174,17 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     })
 
     return NextResponse.json(company)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Şirket güncellenirken hata:', error)
+    
+    // Zod validation errors
+    if (error.name === 'ZodError') {
+      return NextResponse.json(
+        { error: 'Geçersiz veri', details: error.errors },
+        { status: 400 }
+      )
+    }
+    
     return NextResponse.json(
       { error: 'Şirket güncellenirken hata oluştu' },
       { status: 500 }

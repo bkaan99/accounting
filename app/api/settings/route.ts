@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { SettingsUpdateSchema } from '@/lib/validations'
 
 export async function GET() {
   try {
@@ -58,13 +59,16 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json()
+    
+    // Zod validation
+    const validatedData = SettingsUpdateSchema.parse(body)
     const { 
       name, 
       phone, 
       address,
       company, // Şirket adı
       companyLogo // Şirket logosu
-    } = body
+    } = validatedData
 
     // Kullanıcı bilgilerini güncelle
     const updateData: any = {}
@@ -137,8 +141,17 @@ export async function PUT(request: Request) {
     }
 
     return NextResponse.json(updatedUser)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Ayarlar güncellenirken hata:', error)
+    
+    // Zod validation errors
+    if (error.name === 'ZodError') {
+      return NextResponse.json(
+        { error: 'Geçersiz veri', details: error.errors },
+        { status: 400 }
+      )
+    }
+    
     return NextResponse.json(
       { error: 'Ayarlar güncellenemedi' },
       { status: 500 }

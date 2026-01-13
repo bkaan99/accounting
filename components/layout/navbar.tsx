@@ -12,8 +12,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Menu, LogOut, User, Building2, ChevronDown } from 'lucide-react'
+import { Menu, LogOut, User, Building2, ChevronDown, HelpCircle } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
 interface NavbarProps {
   onToggleSidebar?: () => void
@@ -21,6 +22,7 @@ interface NavbarProps {
 
 export function Navbar({ onToggleSidebar }: NavbarProps) {
   const { data: session } = useSession()
+  const router = useRouter()
   const [companyLogo, setCompanyLogo] = useState<string | null>(null)
 
   // Logo bilgisini ayrı olarak al
@@ -108,6 +110,16 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
         {session?.user?.id && (
           <NotificationDropdown userId={session.user.id} />
         )}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => router.push('/help')}
+          className="modern-button hover:bg-blue-500/10 dark:hover:bg-blue-400/10"
+          aria-label="Yardım"
+          title="Yardım"
+        >
+          <HelpCircle className="h-5 w-5" />
+        </Button>
         <ThemeToggle />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

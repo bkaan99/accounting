@@ -142,6 +142,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Şirketin var olup olmadığını kontrol et
+    const company = await prisma.company.findUnique({
+      where: { id: session.user.companyId },
+    })
+
+    if (!company) {
+      return NextResponse.json(
+        { error: 'Şirket bulunamadı. Lütfen sistem yöneticisi ile iletişime geçin.' },
+        { status: 400 }
+      )
+    }
+
     const client = await prisma.client.create({
       data: {
         ...validatedData,
@@ -172,8 +184,26 @@ export async function POST(request: NextRequest) {
     }).catch((err) => console.error('❌ Tedarikçi eklendi bildirimi hatası:', err))
 
     return NextResponse.json(client, { status: 201 })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Tedarikçi oluşturulurken hata:', error)
+    
+    // Zod validation errors
+    if (error.name === 'ZodError') {
+      return NextResponse.json(
+        { error: 'Geçersiz veri', details: error.errors },
+        { status: 400 }
+      )
+    }
+    
+    // Foreign key constraint error
+    if (error.code === 'P2003') {
+      const fieldName = error.meta?.field_name || 'bilinmeyen alan'
+      return NextResponse.json(
+        { error: `Veritabanı hatası: ${fieldName}. Lütfen sistem yöneticisi ile iletişime geçin.` },
+        { status: 400 }
+      )
+    }
+    
     return NextResponse.json(
       { error: 'Tedarikçi oluşturulurken hata oluştu' },
       { status: 500 }

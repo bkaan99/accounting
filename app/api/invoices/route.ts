@@ -210,6 +210,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Şirketin var olup olmadığını kontrol et
+    const company = await prisma.company.findUnique({
+      where: { id: session.user.companyId },
+    })
+
+    if (!company) {
+      return NextResponse.json(
+        { error: 'Şirket bulunamadı. Lütfen sistem yöneticisi ile iletişime geçin.' },
+        { status: 400 }
+      )
+    }
+
     // Generate unique invoice number
     const generateInvoiceNumber = async (): Promise<string> => {
       const now = new Date()
@@ -318,8 +330,26 @@ export async function POST(request: NextRequest) {
     })
 
     return NextResponse.json(invoice, { status: 201 })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Invoice creation error:', error)
+    
+    // Zod validation errors
+    if (error.name === 'ZodError') {
+      return NextResponse.json(
+        { error: 'Geçersiz veri', details: error.errors },
+        { status: 400 }
+      )
+    }
+    
+    // Foreign key constraint error
+    if (error.code === 'P2003') {
+      const fieldName = error.meta?.field_name || 'bilinmeyen alan'
+      return NextResponse.json(
+        { error: `Veritabanı hatası: ${fieldName}. Lütfen sistem yöneticisi ile iletişime geçin.` },
+        { status: 400 }
+      )
+    }
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

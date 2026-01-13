@@ -48,7 +48,7 @@ interface Invoice {
   dueDate: string
   totalAmount: number
   status: 'DRAFT' | 'SENT' | 'UNPAID' | 'PAID' | 'OVERDUE'
-  client: Client
+  client: ClientInfo
   items: InvoiceItem[]
   notes?: string
   createdAt: string
@@ -61,7 +61,7 @@ interface FilteredInvoice {
   clientName: string
   clientEmail: string
   amount: number
-  status: 'DRAFT' | 'SENT' | 'PAID' | 'OVERDUE'
+  status: 'DRAFT' | 'SENT' | 'PAID' | 'OVERDUE' | 'UNPAID'
   date: string
   dueDate: string
   createdAt: string
@@ -385,7 +385,30 @@ export default function InvoicesPage() {
                         </span>
                       </TableCell>
                       <TableCell className="text-right">
-                        <InvoiceActions invoice={invoice} onDelete={handleInvoiceDelete} />
+                        <InvoiceActions 
+                          invoice={{
+                            id: invoice.id,
+                            number: invoice.number,
+                            issueDate: invoice.issueDate,
+                            dueDate: invoice.dueDate,
+                            status: invoice.status,
+                            totalAmount: invoice.totalAmount,
+                            notes: invoice.notes,
+                            clientInfo: {
+                              name: invoice.client.name,
+                              email: invoice.client.email,
+                              phone: invoice.client.phone,
+                              address: invoice.client.address,
+                            },
+                            items: invoice.items.map(item => ({
+                              description: item.description,
+                              quantity: item.quantity,
+                              price: item.price,
+                              total: item.quantity * item.price,
+                            })),
+                          }} 
+                          onDelete={handleInvoiceDelete} 
+                        />
                       </TableCell>
                     </TableRow>
                   ))}

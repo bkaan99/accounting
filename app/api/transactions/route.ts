@@ -57,7 +57,7 @@ export async function GET() {
     if (session.user.companyId) {
       const transactions = await prisma.transaction.findMany({
         where: { 
-          companyId: session.user.companyId,
+          companyId: session.user.companyId!,
           isDeleted: false // Soft delete edilmemiş işlemler
         },
         include: {
@@ -177,7 +177,7 @@ export async function POST(request: NextRequest) {
       const newTransaction = await tx.transaction.create({
         data: {
           userId: session.user.id,
-          companyId: session.user.companyId,
+          companyId: session.user.companyId!,
           cashAccountId: cashAccountId || null,
           type,
           category,
@@ -243,7 +243,7 @@ export async function POST(request: NextRequest) {
         if (updatedCashAccount.balance < 0) {
           createNotification({
             userId: session.user.id,
-            companyId: session.user.companyId,
+            companyId: session.user.companyId!,
             type: 'NEGATIVE_BALANCE',
             priority: 'URGENT',
             title: 'Kasa Negatif Bakiyede!',
@@ -260,7 +260,7 @@ export async function POST(request: NextRequest) {
         else if (updatedCashAccount.balance < lowBalanceLimit && updatedCashAccount.balance >= 0) {
           createNotification({
             userId: session.user.id,
-            companyId: session.user.companyId,
+            companyId: session.user.companyId!,
             type: 'LOW_BALANCE',
             priority: 'MEDIUM',
             title: 'Düşük Bakiye Uyarısı',

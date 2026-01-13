@@ -76,7 +76,7 @@ export async function GET() {
     if (session.user.companyId) {
       const invoices = await prisma.invoice.findMany({
         where: { 
-          companyId: session.user.companyId,
+          companyId: session.user.companyId!,
           isDeleted: false // Soft delete edilmemiş faturalar
         },
         include: {
@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
       // Get the latest invoice number for this company in this month
       const latestInvoice = await prisma.invoice.findFirst({
         where: {
-          companyId: session.user.companyId,
+          companyId: session.user.companyId!,
           number: {
             startsWith: `INV-${year}${month}`
           }
@@ -204,7 +204,7 @@ export async function POST(request: NextRequest) {
         data: {
           number: invoiceNumber,
           userId: session.user.id,
-          companyId: session.user.companyId,
+          companyId: session.user.companyId!,
           clientId: validatedData.clientId,
           issueDate: new Date(validatedData.issueDate),
           dueDate: new Date(validatedData.dueDate),
@@ -230,7 +230,7 @@ export async function POST(request: NextRequest) {
       await tx.transaction.create({
         data: {
           userId: session.user.id,
-          companyId: session.user.companyId,
+          companyId: session.user.companyId!,
           type: 'EXPENSE',
           category: 'Tedarikçi Faturası',
           amount: totalAmount,

@@ -13,7 +13,7 @@ interface Invoice {
   clientName: string
   clientEmail: string
   amount: number
-  status: 'UNPAID' | 'PAID' | 'OVERDUE'
+  status: 'DRAFT' | 'SENT' | 'UNPAID' | 'PAID' | 'OVERDUE'
   date: string
   dueDate: string
   createdAt: string
@@ -22,7 +22,7 @@ interface Invoice {
 
 interface Filters {
   client: string
-  status: 'ALL' | 'UNPAID' | 'PAID' | 'OVERDUE'
+  status: 'ALL' | 'DRAFT' | 'SENT' | 'UNPAID' | 'PAID' | 'OVERDUE'
   dateFrom: string
   dateTo: string
   dueDateFrom: string
@@ -109,56 +109,59 @@ export function InvoiceFilters({
 
   return (
     <div className="space-y-4">
-      {/* Filter Toggle Button */}
-      <div className="flex items-center justify-between">
-        <Button
-          variant="outline"
-          onClick={() => setShowFilters(!showFilters)}
-          className="flex items-center space-x-2"
-        >
-          <Filter className="h-4 w-4" />
-          <span>Filtreler</span>
+      {/* Quick Status Filters and Filter Toggle Button */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        {/* Quick Status Filters */}
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant={filters.status === 'ALL' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => updateFilter('status', 'ALL')}
+          >
+            <FileText className="h-4 w-4 mr-1" />
+            Tümü
+          </Button>
+          {(['UNPAID', 'PAID', 'OVERDUE'] as const).map((status) => (
+            <Button
+              key={status}
+              variant={filters.status === status ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => updateFilter('status', status)}
+              className={filters.status !== status ? statusColors[status] : ''}
+            >
+              {statusLabels[status]}
+            </Button>
+          ))}
+        </div>
+
+        {/* Filter Toggle Button */}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center space-x-2"
+          >
+            <Filter className="h-4 w-4" />
+            <span>Filtreler</span>
+            {hasActiveFilters() && (
+              <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full dark:bg-blue-900 dark:text-blue-200">
+                {getFilterCount()}
+              </span>
+            )}
+          </Button>
+
           {hasActiveFilters() && (
-            <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full dark:bg-blue-900 dark:text-blue-200">
-              {getFilterCount()}
-            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearFilters}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <X className="h-4 w-4 mr-1" />
+              Temizle
+            </Button>
           )}
-        </Button>
-
-        {hasActiveFilters() && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={clearFilters}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            <X className="h-4 w-4 mr-1" />
-            Temizle
-          </Button>
-        )}
-      </div>
-
-      {/* Quick Status Filters */}
-      <div className="flex flex-wrap gap-2">
-        <Button
-          variant={filters.status === 'ALL' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => updateFilter('status', 'ALL')}
-        >
-          <FileText className="h-4 w-4 mr-1" />
-          Tümü
-        </Button>
-        {(['UNPAID', 'PAID', 'OVERDUE'] as const).map((status) => (
-          <Button
-            key={status}
-            variant={filters.status === status ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => updateFilter('status', status)}
-            className={filters.status !== status ? statusColors[status] : ''}
-          >
-            {statusLabels[status]}
-          </Button>
-        ))}
+        </div>
       </div>
 
       {/* Advanced Filters */}

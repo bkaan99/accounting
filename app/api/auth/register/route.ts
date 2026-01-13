@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
         name: validatedData.name,
         email: validatedData.email,
         password: hashedPassword,
-        company: validatedData.company,
+        companyId: validatedData.company,
         phone: validatedData.phone,
         address: validatedData.address,
       },

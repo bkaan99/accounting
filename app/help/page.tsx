@@ -458,7 +458,7 @@ export default function HelpPage() {
               </h3>
               <ol className="list-decimal list-inside space-y-2 text-gray-600 dark:text-gray-400">
                 <li>Email ve şifrenizle giriş yapın</li>
-                <li>Dashboard'dan genel durumunuzu kontrol edin</li>
+                <li>Dashboard&apos;dan genel durumunuzu kontrol edin</li>
                 <li>İlk tedarikçinizi ekleyin</li>
                 <li>İlk faturanızı oluşturun</li>
                 <li>Gelir/gider işlemlerinizi kaydedin</li>
@@ -522,7 +522,7 @@ export default function HelpPage() {
                 <li className="flex items-start space-x-2">
                   <span className="text-yellow-500 mt-1">💡</span>
                   <span>
-                    Filtreleri temizlemek için "Temizle" butonunu kullanın
+                    Filtreleri temizlemek için &quot;Temizle&quot; butonunu kullanın
                   </span>
                 </li>
                 <li className="flex items-start space-x-2">
@@ -544,7 +544,7 @@ export default function HelpPage() {
           </CardHeader>
           <CardContent>
             <p className="text-gray-600 dark:text-gray-400 mb-4">
-              Detaylı kullanım kılavuzu için yukarıdaki "PDF İndir" butonunu
+              Detaylı kullanım kılavuzu için yukarıdaki &quot;PDF İndir&quot; butonunu
               kullanarak kapsamlı dokümantasyonu indirebilirsiniz.
             </p>
             <div className="flex flex-wrap gap-3">

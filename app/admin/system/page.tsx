@@ -309,38 +309,38 @@ export default async function AdminSystemPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg">
                 <div className="flex items-center space-x-2">
-                  <CheckCircle className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm font-medium text-blue-800">
+                  <CheckCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <span className="text-sm font-medium text-blue-800 dark:text-blue-300">
                     Sistem başarıyla güncellenmiştir
                   </span>
                 </div>
-                <p className="text-xs text-blue-600 mt-1">
+                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
                   15 Ocak 2024, 14:30
                 </p>
               </div>
 
-              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+              <div className="p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg">
                 <div className="flex items-center space-x-2">
-                  <Database className="h-4 w-4 text-green-600" />
-                  <span className="text-sm font-medium text-green-800">
+                  <Database className="h-4 w-4 text-green-600 dark:text-green-400" />
+                  <span className="text-sm font-medium text-green-800 dark:text-green-300">
                     Veritabanı yedeği başarıyla oluşturuldu
                   </span>
                 </div>
-                <p className="text-xs text-green-600 mt-1">
+                <p className="text-xs text-green-600 dark:text-green-400 mt-1">
                   15 Ocak 2024, 09:30
                 </p>
               </div>
 
-              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="p-3 bg-yellow-50 dark:bg-orange-900/30 border border-yellow-200 dark:border-orange-800 rounded-lg">
                 <div className="flex items-center space-x-2">
-                  <Activity className="h-4 w-4 text-yellow-600" />
-                  <span className="text-sm font-medium text-yellow-800">
+                  <Activity className="h-4 w-4 text-yellow-600 dark:text-orange-400" />
+                  <span className="text-sm font-medium text-yellow-800 dark:text-orange-300">
                     Sistem bakımı planlandı
                   </span>
                 </div>
-                <p className="text-xs text-yellow-600 mt-1">
+                <p className="text-xs text-yellow-600 dark:text-orange-400 mt-1">
                   20 Ocak 2024, 02:00
                 </p>
               </div>

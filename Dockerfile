@@ -73,10 +73,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@types ./node_module
 # Veritabanı dizini oluştur
 RUN mkdir -p /app/prisma/prisma
 
-# Entrypoint script'ini kopyala ve çalıştırılabilir yap
-COPY --chown=nextjs:nodejs docker-entrypoint.sh /app/docker-entrypoint.sh
-RUN chmod +x /app/docker-entrypoint.sh
-
 USER nextjs
 
 EXPOSE 3000
@@ -84,6 +80,5 @@ EXPOSE 3000
 ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
 
-ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["node", "server.js"]
 

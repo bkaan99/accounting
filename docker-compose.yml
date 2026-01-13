@@ -25,11 +25,21 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NODE_ENV=${NODE_ENV:-production}
+      - NODE_ENV=${NODE_ENV:-development}
       - DATABASE_URL=postgresql://${POSTGRES_USER:-muhasebe}:${POSTGRES_PASSWORD:-muhasebe123}@postgres:5432/${POSTGRES_DB:-muhasebe_db}
       - NEXTAUTH_URL=http://localhost:3000
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-change-this-secret-in-production}
-      - RUN_SEED=${RUN_SEED:-false}
+      - RUN_SEED=${RUN_SEED:-true}
+    command: >
+      sh -c "
+        sleep 5 &&
+        npx prisma generate &&
+        npx prisma db push &&
+        if [ \"$$RUN_SEED\" = \"true\" ] || [ \"$$NODE_ENV\" != \"production\" ]; then
+          npm run db:seed || echo 'Seed hatası (normal olabilir)';
+        fi &&
+        node server.js
+      "
     depends_on:
       postgres:
         condition: service_healthy

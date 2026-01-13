@@ -10,7 +10,9 @@
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "docker:setup": "npx prisma generate && npx prisma db push",
+    "docker:start": "node server.js"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^1.4.0",

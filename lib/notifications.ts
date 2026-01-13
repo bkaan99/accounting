@@ -46,6 +46,16 @@ export async function createNotification(params: CreateNotificationParams) {
   try {
     const { userId, companyId, type, priority = 'MEDIUM', title, message, link, metadata } = params
 
+    // Önce kullanıcının var olduğunu kontrol et
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    })
+
+    if (!user) {
+      console.error(`Kullanıcı bulunamadı: ${userId}`)
+      return null
+    }
+
     // Kullanıcının bildirim tercihlerini kontrol et
     const preference = await prisma.notificationPreference.findUnique({
       where: { userId },
@@ -53,12 +63,17 @@ export async function createNotification(params: CreateNotificationParams) {
 
   // Eğer kullanıcının tercihi yoksa, varsayılan tercihler oluştur
   if (!preference) {
-    await prisma.notificationPreference.create({
-      data: {
-        userId,
-        companyId: companyId || null,
-      },
-    })
+    try {
+      await prisma.notificationPreference.create({
+        data: {
+          userId,
+          companyId: companyId || null,
+        },
+      })
+    } catch (error) {
+      console.error('NotificationPreference oluşturulurken hata:', error)
+      // Hata olsa bile devam et, varsayılan tercihlerle çalış
+    }
     // Varsayılan tercihlerle devam et (hepsi true)
   }
 

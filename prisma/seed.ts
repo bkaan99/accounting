@@ -7,12 +7,14 @@ async function main() {
   console.log('🌱 Seed başlatılıyor...')
 
   try {
-    // Mevcut verileri temizle
+    // Mevcut verileri temizle (foreign key constraint'ler nedeniyle sırayla)
     await prisma.transaction.deleteMany()
     await prisma.invoiceItem.deleteMany()
     await prisma.invoice.deleteMany()
     await prisma.client.deleteMany()
     await prisma.cashAccount.deleteMany()
+    await prisma.notification.deleteMany()
+    await prisma.notificationPreference.deleteMany()
     await prisma.user.deleteMany()
     await prisma.company.deleteMany()
 

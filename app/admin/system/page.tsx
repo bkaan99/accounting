@@ -13,6 +13,7 @@ import {
   Clock,
   CheckCircle,
 } from 'lucide-react'
+import os from 'os'
 
 // Uptime'ı formatla (saniye cinsinden)
 function formatUptime(seconds: number): string {
@@ -52,6 +53,24 @@ export default async function AdminSystemPage() {
   const uptimeSeconds = process.uptime()
   const formattedUptime = formatUptime(uptimeSeconds)
 
+  // CPU ve RAM bilgilerini al
+  const cpuCount = os.cpus().length
+  const loadAvg = os.loadavg()[0] // 1 dakikalık load average
+  // CPU kullanımı: loadavg / cpu sayısı * 100 (max 100%)
+  const cpuUsage = Math.min(Math.round((loadAvg / cpuCount) * 100), 100)
+
+  // RAM bilgileri
+  const totalMem = os.totalmem()
+  const freeMem = os.freemem()
+  const usedMem = totalMem - freeMem
+  const memUsagePercent = Math.round((usedMem / totalMem) * 100)
+
+  // Bellek formatla (GB cinsinden)
+  const formatBytes = (bytes: number): string => {
+    const gb = bytes / (1024 * 1024 * 1024)
+    return `${gb.toFixed(2)} GB`
+  }
+
   const systemInfo = {
     version: '1.0.0',
     database: 'PostgreSQL',
@@ -59,6 +78,11 @@ export default async function AdminSystemPage() {
     lastBackup: '2024-01-15 09:30:00',
     environment: process.env.NODE_ENV === 'production' ? 'Production' : 'Development',
     nodeVersion: process.version,
+    cpuUsage,
+    memUsage: memUsagePercent,
+    totalMem: formatBytes(totalMem),
+    usedMem: formatBytes(usedMem),
+    freeMem: formatBytes(freeMem),
   }
 
   return (
@@ -175,40 +199,61 @@ export default async function AdminSystemPage() {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>CPU Kullanımı</span>
-                  <span>15%</span>
+                  <span>{systemInfo.cpuUsage}%</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                   <div
-                    className="bg-blue-600 h-2 rounded-full"
-                    style={{ width: '15%' }}
+                    className={`h-2 rounded-full transition-all ${
+                      systemInfo.cpuUsage > 80
+                        ? 'bg-red-600'
+                        : systemInfo.cpuUsage > 50
+                        ? 'bg-orange-600'
+                        : 'bg-blue-600'
+                    }`}
+                    style={{ width: `${systemInfo.cpuUsage}%` }}
                   ></div>
                 </div>
+                <p className="text-xs text-gray-500">
+                  {cpuCount} CPU çekirdeği
+                </p>
               </div>
 
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Bellek Kullanımı</span>
-                  <span>32%</span>
+                  <span>{systemInfo.memUsage}%</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                   <div
-                    className="bg-green-600 h-2 rounded-full"
-                    style={{ width: '32%' }}
+                    className={`h-2 rounded-full transition-all ${
+                      systemInfo.memUsage > 80
+                        ? 'bg-red-600'
+                        : systemInfo.memUsage > 50
+                        ? 'bg-orange-600'
+                        : 'bg-green-600'
+                    }`}
+                    style={{ width: `${systemInfo.memUsage}%` }}
                   ></div>
                 </div>
+                <p className="text-xs text-gray-500">
+                  {systemInfo.usedMem} / {systemInfo.totalMem} kullanılıyor
+                </p>
               </div>
 
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Disk Kullanımı</span>
-                  <span>68%</span>
+                  <span className="text-gray-500">Bilgi alınamadı</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                   <div
-                    className="bg-orange-600 h-2 rounded-full"
-                    style={{ width: '68%' }}
+                    className="bg-gray-400 h-2 rounded-full"
+                    style={{ width: '0%' }}
                   ></div>
                 </div>
+                <p className="text-xs text-gray-500">
+                  Disk bilgisi Node.js ile alınamıyor
+                </p>
               </div>
             </CardContent>
           </Card>

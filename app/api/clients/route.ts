@@ -18,6 +18,32 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const { page, limit, skip, take } = parsePaginationParams(searchParams, 10)
 
+    const clientSelect = {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      address: true,
+      taxId: true,
+      companyId: true,
+      userId: true,
+      isDeleted: true,
+      createdAt: true,
+      updatedAt: true,
+      company: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      user: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    }
+
     // Süperadmin tüm tedarikçileri görebilir
     if (session.user.role === 'SUPERADMIN') {
       const where = {}
@@ -25,20 +51,7 @@ export async function GET(request: NextRequest) {
       const [clients, total] = await Promise.all([
         prisma.client.findMany({
           where,
-          include: {
-            company: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-            user: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
+          select: clientSelect,
           orderBy: { createdAt: 'desc' },
           skip,
           take,
@@ -71,14 +84,7 @@ export async function GET(request: NextRequest) {
       const [clients, total] = await Promise.all([
         prisma.client.findMany({
           where,
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
+          select: clientSelect,
           orderBy: { createdAt: 'desc' },
           skip,
           take,

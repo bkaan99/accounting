@@ -17,7 +17,17 @@ export async function GET(
 
     const cashAccount = await prisma.cashAccount.findUnique({
       where: { id: params.id },
-      include: {
+      select: {
+        id: true,
+        companyId: true,
+        name: true,
+        type: true,
+        initialBalance: true,
+        balance: true,
+        isActive: true,
+        description: true,
+        createdAt: true,
+        updatedAt: true,
         company: {
           select: {
             id: true,
@@ -25,7 +35,15 @@ export async function GET(
           },
         },
         transactions: {
-          include: {
+          select: {
+            id: true,
+            type: true,
+            category: true,
+            amount: true,
+            description: true,
+            date: true,
+            isPaid: true,
+            invoiceId: true,
             user: {
               select: {
                 id: true,
@@ -159,8 +177,14 @@ export async function DELETE(
 
     const existingCashAccount = await prisma.cashAccount.findUnique({
       where: { id: params.id },
-      include: {
-        transactions: true,
+      select: {
+        id: true,
+        companyId: true,
+        transactions: {
+          select: {
+            id: true,
+          },
+        },
       },
     })
 

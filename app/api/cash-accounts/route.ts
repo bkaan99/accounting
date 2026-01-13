@@ -12,27 +12,39 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const cashAccountSelect = {
+      id: true,
+      companyId: true,
+      name: true,
+      type: true,
+      initialBalance: true,
+      balance: true,
+      isActive: true,
+      description: true,
+      createdAt: true,
+      updatedAt: true,
+      company: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      transactions: {
+        select: {
+          id: true,
+          type: true,
+          amount: true,
+          date: true,
+        },
+        orderBy: { date: 'desc' },
+        take: 5, // Son 5 işlem
+      },
+    }
+
     // Süperadmin tüm kasaları görebilir
     if (session.user.role === 'SUPERADMIN') {
       const cashAccounts = await prisma.cashAccount.findMany({
-        include: {
-          company: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          transactions: {
-            select: {
-              id: true,
-              type: true,
-              amount: true,
-              date: true,
-            },
-            orderBy: { date: 'desc' },
-            take: 5, // Son 5 işlem
-          },
-        },
+        select: cashAccountSelect,
         orderBy: { createdAt: 'desc' },
       })
 
@@ -46,18 +58,7 @@ export async function GET() {
           companyId: session.user.companyId
           // isActive filtresini kaldırdık - hem aktif hem pasif kasaları göster
         },
-        include: {
-          transactions: {
-            select: {
-              id: true,
-              type: true,
-              amount: true,
-              date: true,
-            },
-            orderBy: { date: 'desc' },
-            take: 5, // Son 5 işlem
-          },
-        },
+        select: cashAccountSelect,
         orderBy: { createdAt: 'desc' },
       })
 

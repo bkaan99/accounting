@@ -19,16 +19,50 @@ export async function GET(
 
     let invoice
     
+    const invoiceSelect = {
+      id: true,
+      number: true,
+      clientId: true,
+      userId: true,
+      companyId: true,
+      issueDate: true,
+      dueDate: true,
+      status: true,
+      subtotal: true,
+      taxAmount: true,
+      totalAmount: true,
+      notes: true,
+      isDeleted: true,
+      createdAt: true,
+      updatedAt: true,
+      client: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          address: true,
+          taxId: true,
+        },
+      },
+      items: {
+        select: {
+          id: true,
+          description: true,
+          quantity: true,
+          price: true,
+          total: true,
+        },
+      },
+    }
+    
     // Süperadmin tüm faturaları görebilir
     if (session.user.role === 'SUPERADMIN') {
       invoice = await prisma.invoice.findUnique({
         where: { 
           id: params.id,
         },
-        include: {
-          client: true,
-          items: true,
-        }
+        select: invoiceSelect,
       })
     } else {
       // Admin ve User sadece kendi şirketinin faturalarını görebilir
@@ -37,10 +71,7 @@ export async function GET(
           id: params.id,
           companyId: session.user.companyId,
         },
-        include: {
-          client: true,
-          items: true,
-        }
+        select: invoiceSelect,
       })
     }
 
@@ -130,10 +161,7 @@ export async function PUT(
               }))
             }
           },
-          include: {
-            client: true,
-            items: true,
-          }
+          select: invoiceSelect,
         })
         
         // Fatura durumunu kontrol et ve güncelle (transaction içinde)
@@ -216,10 +244,7 @@ export async function PUT(
           notes,
           updatedAt: new Date(),
         },
-        include: {
-          client: true,
-          items: true,
-        }
+        select: invoiceSelect,
       })
       
       // Fatura durumunu kontrol et ve güncelle

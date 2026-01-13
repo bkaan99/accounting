@@ -18,6 +18,53 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const { page, limit, skip, take } = parsePaginationParams(searchParams, 10)
 
+    const transactionSelect = {
+      id: true,
+      userId: true,
+      companyId: true,
+      cashAccountId: true,
+      type: true,
+      category: true,
+      amount: true,
+      description: true,
+      date: true,
+      invoiceId: true,
+      isPaid: true,
+      isDeleted: true,
+      createdAt: true,
+      updatedAt: true,
+      user: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      company: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      cashAccount: {
+        select: {
+          id: true,
+          name: true,
+          type: true,
+        },
+      },
+      invoice: {
+        select: {
+          id: true,
+          number: true,
+          client: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      },
+    }
+
     // Süperadmin tüm işlemleri görebilir
     if (session.user.role === 'SUPERADMIN') {
       const where = {}
@@ -25,38 +72,7 @@ export async function GET(request: NextRequest) {
       const [transactions, total] = await Promise.all([
         prisma.transaction.findMany({
           where,
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-            company: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-            cashAccount: {
-              select: {
-                id: true,
-                name: true,
-                type: true,
-              }
-            },
-            invoice: {
-              select: {
-                id: true,
-                number: true,
-                client: {
-                  select: {
-                    name: true
-                  }
-                }
-              }
-            }
-          },
+          select: transactionSelect,
           orderBy: { date: 'desc' },
           skip,
           take,
@@ -89,32 +105,7 @@ export async function GET(request: NextRequest) {
       const [transactions, total] = await Promise.all([
         prisma.transaction.findMany({
           where,
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-            cashAccount: {
-              select: {
-                id: true,
-                name: true,
-                type: true,
-              }
-            },
-            invoice: {
-              select: {
-                id: true,
-                number: true,
-                client: {
-                  select: {
-                    name: true
-                  }
-                }
-              }
-            }
-          },
+          select: transactionSelect,
           orderBy: { date: 'desc' },
           skip,
           take,

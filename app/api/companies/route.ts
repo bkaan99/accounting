@@ -12,19 +12,30 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 })
     }
 
+    const companySelect = {
+      id: true,
+      name: true,
+      taxId: true,
+      address: true,
+      phone: true,
+      email: true,
+      website: true,
+      createdAt: true,
+      updatedAt: true,
+      _count: {
+        select: {
+          users: true,
+          clients: true,
+          invoices: true,
+          transactions: true,
+        },
+      },
+    }
+
     // Süperadmin tüm şirketleri görebilir
     if (session.user.role === 'SUPERADMIN') {
       const companies = await prisma.company.findMany({
-        include: {
-          _count: {
-            select: {
-              users: true,
-              clients: true,
-              invoices: true,
-              transactions: true,
-            },
-          },
-        },
+        select: companySelect,
         orderBy: { createdAt: 'desc' },
       })
 
@@ -35,16 +46,7 @@ export async function GET(request: NextRequest) {
     if (session.user.companyId) {
       const company = await prisma.company.findUnique({
         where: { id: session.user.companyId },
-        include: {
-          _count: {
-            select: {
-              users: true,
-              clients: true,
-              invoices: true,
-              transactions: true,
-            },
-          },
-        },
+        select: companySelect,
       })
 
       return NextResponse.json(company ? [company] : [])
@@ -89,6 +91,27 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const companySelect = {
+      id: true,
+      name: true,
+      taxId: true,
+      address: true,
+      phone: true,
+      email: true,
+      website: true,
+      logo: true,
+      createdAt: true,
+      updatedAt: true,
+      _count: {
+        select: {
+          users: true,
+          clients: true,
+          invoices: true,
+          transactions: true,
+        },
+      },
+    }
+
     const company = await prisma.company.create({
       data: {
         name,
@@ -99,16 +122,7 @@ export async function POST(request: NextRequest) {
         website,
         logo,
       },
-      include: {
-        _count: {
-          select: {
-            users: true,
-            clients: true,
-            invoices: true,
-            transactions: true,
-          },
-        },
-      },
+      select: companySelect,
     })
 
     return NextResponse.json(company, { status: 201 })

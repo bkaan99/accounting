@@ -54,7 +54,16 @@ export async function PUT(
     // Mevcut işlemi getir
     const existingTransaction = await prisma.transaction.findUnique({
       where: { id: params.id },
-      include: { cashAccount: true },
+      select: {
+        id: true,
+        invoiceId: true,
+        cashAccount: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
     })
 
     if (!existingTransaction) {
@@ -242,7 +251,16 @@ export async function DELETE(
     // Mevcut işlemi getir
     const existingTransaction = await prisma.transaction.findUnique({
       where: { id: params.id },
-      include: { cashAccount: true },
+      select: {
+        id: true,
+        invoiceId: true,
+        cashAccount: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
     })
 
     if (!existingTransaction) {

@@ -15,7 +15,16 @@ export async function GET() {
 
     const users = await prisma.user.findMany({
       orderBy: { createdAt: 'desc' },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        address: true,
+        role: true,
+        companyId: true,
+        createdAt: true,
+        updatedAt: true,
         company: {
           select: {
             id: true,
@@ -84,7 +93,16 @@ export async function POST(request: Request) {
         role,
         companyId,
       },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        address: true,
+        role: true,
+        companyId: true,
+        createdAt: true,
+        updatedAt: true,
         company: {
           select: {
             id: true,

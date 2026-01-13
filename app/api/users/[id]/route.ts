@@ -115,7 +115,8 @@ export async function DELETE(
     // Kullanıcının verilerini kontrol et
     const user = await prisma.user.findUnique({
       where: { id: params.id },
-      include: {
+      select: {
+        id: true,
         _count: {
           select: {
             clients: true,

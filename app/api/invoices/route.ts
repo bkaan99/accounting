@@ -28,8 +28,32 @@ export async function GET(request: NextRequest) {
       const [invoices, total] = await Promise.all([
         prisma.invoice.findMany({
           where,
-          include: {
-            client: true,
+          select: {
+            id: true,
+            number: true,
+            clientId: true,
+            userId: true,
+            companyId: true,
+            issueDate: true,
+            dueDate: true,
+            status: true,
+            subtotal: true,
+            taxAmount: true,
+            totalAmount: true,
+            notes: true,
+            isDeleted: true,
+            createdAt: true,
+            updatedAt: true,
+            client: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true,
+                address: true,
+                taxId: true,
+              },
+            },
             user: {
               select: {
                 id: true,
@@ -42,7 +66,15 @@ export async function GET(request: NextRequest) {
                 name: true,
               },
             },
-            items: true,
+            items: {
+              select: {
+                id: true,
+                description: true,
+                quantity: true,
+                price: true,
+                total: true,
+              },
+            },
           },
           orderBy: { createdAt: 'desc' },
           skip,
@@ -106,15 +138,47 @@ export async function GET(request: NextRequest) {
       const [invoices, total] = await Promise.all([
         prisma.invoice.findMany({
           where,
-          include: {
-            client: true,
+          select: {
+            id: true,
+            number: true,
+            clientId: true,
+            userId: true,
+            companyId: true,
+            issueDate: true,
+            dueDate: true,
+            status: true,
+            subtotal: true,
+            taxAmount: true,
+            totalAmount: true,
+            notes: true,
+            isDeleted: true,
+            createdAt: true,
+            updatedAt: true,
+            client: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true,
+                address: true,
+                taxId: true,
+              },
+            },
             user: {
               select: {
                 id: true,
                 name: true,
               },
             },
-            items: true,
+            items: {
+              select: {
+                id: true,
+                description: true,
+                quantity: true,
+                price: true,
+                total: true,
+              },
+            },
           },
           orderBy: { createdAt: 'desc' },
           skip,
@@ -287,9 +351,41 @@ export async function POST(request: NextRequest) {
             }))
           }
         },
-        include: {
-          client: true,
-          items: true,
+        select: {
+          id: true,
+          number: true,
+          clientId: true,
+          userId: true,
+          companyId: true,
+          issueDate: true,
+          dueDate: true,
+          status: true,
+          subtotal: true,
+          taxAmount: true,
+          totalAmount: true,
+          notes: true,
+          isDeleted: true,
+          createdAt: true,
+          updatedAt: true,
+          client: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+              address: true,
+              taxId: true,
+            },
+          },
+          items: {
+            select: {
+              id: true,
+              description: true,
+              quantity: true,
+              price: true,
+              total: true,
+            },
+          },
         }
       })
 

@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createNotification } from '@/lib/notifications'
 import { UserCreateSchema } from '@/lib/validations'
+import { handleApiError, ApiErrors } from '@/lib/error-handler'
 
 export async function GET() {
   try {
@@ -44,11 +45,7 @@ export async function GET() {
 
     return NextResponse.json(users)
   } catch (error) {
-    console.error('Kullanıcılar getirilirken hata:', error)
-    return NextResponse.json(
-      { error: 'Kullanıcılar getirilemedi' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'GET /api/users')
   }
 }
 
@@ -149,20 +146,7 @@ export async function POST(request: Request) {
     )
 
     return NextResponse.json(newUser)
-  } catch (error: any) {
-    console.error('Kullanıcı oluşturulurken hata:', error)
-    
-    // Zod validation errors
-    if (error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: 'Geçersiz veri', details: error.errors },
-        { status: 400 }
-      )
-    }
-    
-    return NextResponse.json(
-      { error: 'Kullanıcı oluşturulamadı' },
-      { status: 500 }
-    )
+  } catch (error) {
+    return handleApiError(error, 'POST /api/users')
   }
 } 

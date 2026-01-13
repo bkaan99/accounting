@@ -3,13 +3,14 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { CompanySchema } from '@/lib/validations'
+import { handleApiError, ApiErrors } from '@/lib/error-handler'
 
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
 
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 })
+      return ApiErrors.unauthorized()
     }
 
     const companySelect = {
@@ -54,11 +55,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json([])
   } catch (error) {
-    console.error('Şirketler alınırken hata:', error)
-    return NextResponse.json(
-      { error: 'Şirketler alınırken hata oluştu' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'GET /api/companies')
   }
 }
 
@@ -129,17 +126,6 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Şirket oluşturulurken hata:', error)
     
-    // Zod validation errors
-    if (error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: 'Geçersiz veri', details: error.errors },
-        { status: 400 }
-      )
-    }
-    
-    return NextResponse.json(
-      { error: 'Şirket oluşturulurken hata oluştu' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'POST /api/companies')
   }
 }

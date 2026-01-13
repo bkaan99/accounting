@@ -6,13 +6,14 @@ import { invoiceSchema } from '@/lib/validations'
 import { createNotification } from '@/lib/notifications'
 import { updateInvoiceStatus } from '@/lib/invoice-status'
 import { parsePaginationParams, type PaginationResponse } from '@/lib/utils'
+import { handleApiError, ApiErrors } from '@/lib/error-handler'
 
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
 
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return ApiErrors.unauthorized()
     }
 
     // Pagination parametrelerini al
@@ -247,11 +248,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(emptyResponse)
   } catch (error) {
-    console.error('Invoice fetch error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'GET /api/invoices')
   }
 }
 
@@ -260,7 +257,7 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions)
 
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return ApiErrors.unauthorized()
     }
 
     const body = await request.json()
@@ -268,10 +265,7 @@ export async function POST(request: NextRequest) {
 
     // Kullanıcının şirketi yoksa fatura oluşturamaz
     if (!session.user.companyId) {
-      return NextResponse.json(
-        { error: 'Şirket bilgisi bulunamadı' },
-        { status: 400 }
-      )
+      return ApiErrors.badRequest('Şirket bilgisi bulunamadı')
     }
 
     // Şirketin var olup olmadığını kontrol et
@@ -426,29 +420,7 @@ export async function POST(request: NextRequest) {
     })
 
     return NextResponse.json(invoice, { status: 201 })
-  } catch (error: any) {
-    console.error('Invoice creation error:', error)
-    
-    // Zod validation errors
-    if (error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: 'Geçersiz veri', details: error.errors },
-        { status: 400 }
-      )
-    }
-    
-    // Foreign key constraint error
-    if (error.code === 'P2003') {
-      const fieldName = error.meta?.field_name || 'bilinmeyen alan'
-      return NextResponse.json(
-        { error: `Veritabanı hatası: ${fieldName}. Lütfen sistem yöneticisi ile iletişime geçin.` },
-        { status: 400 }
-      )
-    }
-    
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+  } catch (error) {
+    return handleApiError(error, 'POST /api/invoices')
   }
 } 

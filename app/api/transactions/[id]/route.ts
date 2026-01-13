@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { updateInvoiceStatus } from '@/lib/invoice-status'
 import { createNotification } from '@/lib/notifications'
 import { TransactionUpdateSchema } from '@/lib/validations'
+import { handleApiError, ApiErrors } from '@/lib/error-handler'
 
 export async function GET(
   request: NextRequest,
@@ -14,7 +15,7 @@ export async function GET(
     const session = await getServerSession(authOptions)
 
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return ApiErrors.unauthorized()
     }
 
     const transaction = await prisma.transaction.findUnique({
@@ -25,16 +26,12 @@ export async function GET(
     })
 
     if (!transaction) {
-      return NextResponse.json({ error: 'Transaction not found' }, { status: 404 })
+      return ApiErrors.notFound('İşlem bulunamadı')
     }
 
     return NextResponse.json(transaction)
   } catch (error) {
-    console.error('Transaction fetch error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'GET /api/transactions/[id]')
   }
 }
 
@@ -46,7 +43,7 @@ export async function PUT(
     const session = await getServerSession(authOptions)
 
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return ApiErrors.unauthorized()
     }
 
     const body = await request.json()
@@ -67,7 +64,7 @@ export async function PUT(
     })
 
     if (!existingTransaction) {
-      return NextResponse.json({ error: 'İşlem bulunamadı' }, { status: 404 })
+      return ApiErrors.notFound('İşlem bulunamadı')
     }
 
     // Faturaya bağlı işlemler için sadece kasa ve ödeme durumu güncellenebilir
@@ -87,7 +84,7 @@ export async function PUT(
 
     // Yetki kontrolü
     if (session.user.role !== 'SUPERADMIN' && existingTransaction.companyId !== session.user.companyId) {
-      return NextResponse.json({ error: 'Bu işlemi düzenleme yetkiniz yok' }, { status: 403 })
+      return ApiErrors.forbidden('Bu işlemi düzenleme yetkiniz yok')
     }
 
     // Kasa seçildiyse kasa kontrolü yap
@@ -219,21 +216,8 @@ export async function PUT(
     }
 
     return NextResponse.json(transaction)
-  } catch (error: any) {
-    console.error('Transaction update error:', error)
-    
-    // Zod validation errors
-    if (error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: 'Geçersiz veri', details: error.errors },
-        { status: 400 }
-      )
-    }
-    
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+  } catch (error) {
+    return handleApiError(error, 'PUT /api/transactions/[id]')
   }
 }
 
@@ -245,7 +229,7 @@ export async function DELETE(
     const session = await getServerSession(authOptions)
 
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return ApiErrors.unauthorized()
     }
 
     // Mevcut işlemi getir
@@ -264,12 +248,12 @@ export async function DELETE(
     })
 
     if (!existingTransaction) {
-      return NextResponse.json({ error: 'İşlem bulunamadı' }, { status: 404 })
+      return ApiErrors.notFound('İşlem bulunamadı')
     }
 
     // Yetki kontrolü
     if (session.user.role !== 'SUPERADMIN' && existingTransaction.companyId !== session.user.companyId) {
-      return NextResponse.json({ error: 'Bu işlemi silme yetkiniz yok' }, { status: 403 })
+      return ApiErrors.forbidden('Bu işlemi silme yetkiniz yok')
     }
 
     // İşlemi sil ve kasa bakiyesini geri al

@@ -14,6 +14,33 @@ import {
   CheckCircle,
 } from 'lucide-react'
 
+// Uptime'ı formatla (saniye cinsinden)
+function formatUptime(seconds: number): string {
+  const days = Math.floor(seconds / 86400)
+  const hours = Math.floor((seconds % 86400) / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  const secs = Math.floor(seconds % 60)
+
+  const parts: string[] = []
+  
+  if (days > 0) {
+    parts.push(`${days} ${days === 1 ? 'gün' : 'gün'}`)
+  }
+  if (hours > 0) {
+    parts.push(`${hours} ${hours === 1 ? 'saat' : 'saat'}`)
+  }
+  if (minutes > 0 && days === 0) {
+    // Sadece gün yoksa dakikayı göster
+    parts.push(`${minutes} ${minutes === 1 ? 'dakika' : 'dakika'}`)
+  }
+  if (parts.length === 0) {
+    // Hiçbir şey yoksa saniyeyi göster
+    parts.push(`${secs} ${secs === 1 ? 'saniye' : 'saniye'}`)
+  }
+
+  return parts.join(' ')
+}
+
 export default async function AdminSystemPage() {
   const session = await getServerSession(authOptions)
 
@@ -21,12 +48,16 @@ export default async function AdminSystemPage() {
     redirect('/dashboard')
   }
 
+  // Gerçek uptime hesapla
+  const uptimeSeconds = process.uptime()
+  const formattedUptime = formatUptime(uptimeSeconds)
+
   const systemInfo = {
     version: '1.0.0',
     database: 'PostgreSQL',
-    uptime: '2 gün 14 saat',
+    uptime: formattedUptime,
     lastBackup: '2024-01-15 09:30:00',
-    environment: 'Development',
+    environment: process.env.NODE_ENV === 'production' ? 'Production' : 'Development',
     nodeVersion: process.version,
   }
 

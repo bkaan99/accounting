@@ -17,6 +17,7 @@ import { formatCurrency, formatDate } from '@/lib/utils'
 import { Plus, TrendingUp, TrendingDown, DollarSign, Wallet, CreditCard, Building2 } from 'lucide-react'
 import { TransactionActions } from '@/components/transaction-actions'
 import { TransactionFilters } from '@/components/transaction-filters'
+import { Pagination } from '@/components/ui/pagination'
 import Link from 'next/link'
 
 interface Transaction {
@@ -34,7 +35,7 @@ interface Transaction {
   invoice?: {
     id: string
     number: string
-    clientInfo: {
+    client: {
       name: string
     }
   }
@@ -52,20 +53,40 @@ export default function TransactionsPage() {
     Transaction[]
   >([])
   const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(10)
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+    hasNext: false,
+    hasPrev: false,
+  })
 
   useEffect(() => {
     if (status === 'authenticated') {
       fetchTransactions()
     }
-  }, [status])
+  }, [status, page, limit])
 
   const fetchTransactions = async () => {
     try {
-      const response = await fetch('/api/transactions')
+      setLoading(true)
+      const response = await fetch(`/api/transactions?page=${page}&limit=${limit}`)
       if (response.ok) {
-        const data = await response.json()
-        setTransactions(data)
-        setFilteredTransactions(data)
+        const result = await response.json()
+        // Pagination response formatı: { data: [...], pagination: {...} }
+        if (result.pagination) {
+          const transactions = result.data || []
+          setTransactions(transactions)
+          setFilteredTransactions(transactions)
+          setPagination(result.pagination)
+        } else {
+          // Eski format (geriye uyumluluk)
+          setTransactions(result)
+          setFilteredTransactions(result)
+        }
       }
     } catch (error) {
       console.error('Error fetching transactions:', error)
@@ -293,7 +314,7 @@ export default function TransactionsPage() {
                               {transaction.invoice.number}
                             </Link>
                             <span className="text-xs text-gray-500">
-                              {transaction.invoice.clientInfo?.name}
+                              {transaction.invoice.client?.name}
                             </span>
                           </div>
                         ) : (
@@ -340,6 +361,24 @@ export default function TransactionsPage() {
               </Table>
             )}
           </CardContent>
+          {pagination.total > 0 && (
+            <Pagination
+              page={pagination.page}
+              limit={pagination.limit}
+              total={pagination.total}
+              totalPages={pagination.totalPages}
+              hasNext={pagination.hasNext}
+              hasPrev={pagination.hasPrev}
+              onPageChange={(newPage) => {
+                setPage(newPage)
+                window.scrollTo({ top: 0, behavior: 'smooth' })
+              }}
+              onLimitChange={(newLimit) => {
+                setLimit(newLimit)
+                setPage(1) // Limit değiştiğinde ilk sayfaya dön
+              }}
+            />
+          )}
         </Card>
       </div>
     </MainLayout>

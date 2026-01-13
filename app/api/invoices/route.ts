@@ -5,8 +5,9 @@ import { prisma } from '@/lib/prisma'
 import { invoiceSchema } from '@/lib/validations'
 import { createNotification } from '@/lib/notifications'
 import { updateInvoiceStatus } from '@/lib/invoice-status'
+import { parsePaginationParams, type PaginationResponse } from '@/lib/utils'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
 
@@ -14,30 +15,41 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Pagination parametrelerini al
+    const searchParams = request.nextUrl.searchParams
+    const { page, limit, skip, take } = parsePaginationParams(searchParams, 10)
+
     // Süperadmin tüm faturaları görebilir
     if (session.user.role === 'SUPERADMIN') {
-      const invoices = await prisma.invoice.findMany({
-        where: {
-          isDeleted: false
-        },
-        include: {
-          client: true,
-          user: {
-            select: {
-              id: true,
-              name: true,
+      const where = {
+        isDeleted: false
+      }
+      
+      const [invoices, total] = await Promise.all([
+        prisma.invoice.findMany({
+          where,
+          include: {
+            client: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+              },
             },
-          },
-          company: {
-            select: {
-              id: true,
-              name: true,
+            company: {
+              select: {
+                id: true,
+                name: true,
+              },
             },
+            items: true,
           },
-          items: true,
-        },
-        orderBy: { createdAt: 'desc' },
-      })
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take,
+        }),
+        prisma.invoice.count({ where })
+      ])
 
       // Gecikmiş faturaları otomatik güncelle
       const now = new Date()
@@ -69,28 +81,47 @@ export async function GET() {
         return invoice
       })
 
-      return NextResponse.json(updatedInvoices)
+      const response: PaginationResponse<typeof updatedInvoices[0]> = {
+        data: updatedInvoices,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+          hasNext: page * limit < total,
+          hasPrev: page > 1,
+        },
+      }
+
+      return NextResponse.json(response)
     }
 
     // Admin ve User sadece kendi şirketinin faturalarını görebilir
     if (session.user.companyId) {
-      const invoices = await prisma.invoice.findMany({
-        where: { 
-          companyId: session.user.companyId!,
-          isDeleted: false // Soft delete edilmemiş faturalar
-        },
-        include: {
-          client: true,
-          user: {
-            select: {
-              id: true,
-              name: true,
+      const where = { 
+        companyId: session.user.companyId!,
+        isDeleted: false // Soft delete edilmemiş faturalar
+      }
+      
+      const [invoices, total] = await Promise.all([
+        prisma.invoice.findMany({
+          where,
+          include: {
+            client: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+              },
             },
+            items: true,
           },
-          items: true,
-        },
-        orderBy: { createdAt: 'desc' },
-      })
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take,
+        }),
+        prisma.invoice.count({ where })
+      ])
 
       // Gecikmiş faturaları otomatik güncelle
       const now = new Date()
@@ -123,10 +154,34 @@ export async function GET() {
         return invoice
       })
 
-      return NextResponse.json(updatedInvoices)
+      const response: PaginationResponse<typeof updatedInvoices[0]> = {
+        data: updatedInvoices,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+          hasNext: page * limit < total,
+          hasPrev: page > 1,
+        },
+      }
+
+      return NextResponse.json(response)
     }
 
-    return NextResponse.json([])
+    const emptyResponse: PaginationResponse<never> = {
+      data: [],
+      pagination: {
+        page: 1,
+        limit: 10,
+        total: 0,
+        totalPages: 0,
+        hasNext: false,
+        hasPrev: false,
+      },
+    }
+
+    return NextResponse.json(emptyResponse)
   } catch (error) {
     console.error('Invoice fetch error:', error)
     return NextResponse.json(

@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { ClientSchema } from '@/lib/validations'
 import { createNotification } from '@/lib/notifications'
+import { parsePaginationParams, type PaginationResponse } from '@/lib/utils'
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,51 +14,106 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 })
     }
 
+    // Pagination parametrelerini al
+    const searchParams = request.nextUrl.searchParams
+    const { page, limit, skip, take } = parsePaginationParams(searchParams, 10)
+
     // Süperadmin tüm tedarikçileri görebilir
     if (session.user.role === 'SUPERADMIN') {
-      const clients = await prisma.client.findMany({
-        include: {
-          company: {
-            select: {
-              id: true,
-              name: true,
+      const where = {}
+      
+      const [clients, total] = await Promise.all([
+        prisma.client.findMany({
+          where,
+          include: {
+            company: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            user: {
+              select: {
+                id: true,
+                name: true,
+              },
             },
           },
-          user: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-        },
-        orderBy: { createdAt: 'desc' },
-      })
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take,
+        }),
+        prisma.client.count({ where })
+      ])
 
-      return NextResponse.json(clients)
+      const response: PaginationResponse<typeof clients[0]> = {
+        data: clients,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+          hasNext: page * limit < total,
+          hasPrev: page > 1,
+        },
+      }
+
+      return NextResponse.json(response)
     }
 
     // Admin ve User sadece kendi şirketinin tedarikçilerini görebilir
     if (session.user.companyId) {
-      const clients = await prisma.client.findMany({
-        where: { 
-          companyId: session.user.companyId,
-          isDeleted: false // Soft delete edilmemiş tedarikçiler
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
+      const where = { 
+        companyId: session.user.companyId,
+        isDeleted: false // Soft delete edilmemiş tedarikçiler
+      }
+      
+      const [clients, total] = await Promise.all([
+        prisma.client.findMany({
+          where,
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+              },
             },
           },
-        },
-        orderBy: { createdAt: 'desc' },
-      })
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take,
+        }),
+        prisma.client.count({ where })
+      ])
 
-      return NextResponse.json(clients)
+      const response: PaginationResponse<typeof clients[0]> = {
+        data: clients,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+          hasNext: page * limit < total,
+          hasPrev: page > 1,
+        },
+      }
+
+      return NextResponse.json(response)
     }
 
-    return NextResponse.json([])
+    const emptyResponse: PaginationResponse<never> = {
+      data: [],
+      pagination: {
+        page: 1,
+        limit: 10,
+        total: 0,
+        totalPages: 0,
+        hasNext: false,
+        hasPrev: false,
+      },
+    }
+
+    return NextResponse.json(emptyResponse)
   } catch (error) {
     console.error('Tedarikçiler alınırken hata:', error)
     return NextResponse.json(

@@ -24,6 +24,7 @@ import {
 } from 'lucide-react'
 import { InvoiceActions } from '@/components/invoice-actions'
 import { InvoiceFilters } from '@/components/invoice-filters'
+import { Pagination } from '@/components/ui/pagination'
 import Link from 'next/link'
 
 interface InvoiceItem {
@@ -72,6 +73,16 @@ export default function InvoicesPage() {
   const { data: session, status } = useSession()
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(10)
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+    hasNext: false,
+    hasPrev: false,
+  })
 
   // Separate state for filter values instead of filtered results
   const [filters, setFilters] = useState({
@@ -90,14 +101,23 @@ export default function InvoicesPage() {
     if (status === 'authenticated') {
       fetchInvoices()
     }
-  }, [status])
+  }, [status, page, limit])
 
   const fetchInvoices = async () => {
     try {
-      const response = await fetch('/api/invoices')
+      setLoading(true)
+      const response = await fetch(`/api/invoices?page=${page}&limit=${limit}`)
       if (response.ok) {
-        const data = await response.json()
-        setInvoices(data)
+        const result = await response.json()
+        // Pagination response formatı: { data: [...], pagination: {...} }
+        if (result.pagination) {
+          const invoices = result.data || []
+          setInvoices(invoices)
+          setPagination(result.pagination)
+        } else {
+          // Eski format (geriye uyumluluk)
+          setInvoices(result)
+        }
       }
     } catch (error) {
       console.error('Error fetching invoices:', error)
@@ -416,6 +436,24 @@ export default function InvoicesPage() {
               </Table>
             )}
           </CardContent>
+          {pagination.total > 0 && (
+            <Pagination
+              page={pagination.page}
+              limit={pagination.limit}
+              total={pagination.total}
+              totalPages={pagination.totalPages}
+              hasNext={pagination.hasNext}
+              hasPrev={pagination.hasPrev}
+              onPageChange={(newPage) => {
+                setPage(newPage)
+                window.scrollTo({ top: 0, behavior: 'smooth' })
+              }}
+              onLimitChange={(newLimit) => {
+                setLimit(newLimit)
+                setPage(1) // Limit değiştiğinde ilk sayfaya dön
+              }}
+            />
+          )}
         </Card>
       </div>
     </MainLayout>

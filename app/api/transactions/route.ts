@@ -4,8 +4,9 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createNotification } from '@/lib/notifications'
 import { TransactionCreateSchema } from '@/lib/validations'
+import { parsePaginationParams, type PaginationResponse } from '@/lib/utils'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
 
@@ -13,87 +14,142 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Pagination parametrelerini al
+    const searchParams = request.nextUrl.searchParams
+    const { page, limit, skip, take } = parsePaginationParams(searchParams, 10)
+
     // Süperadmin tüm işlemleri görebilir
     if (session.user.role === 'SUPERADMIN') {
-      const transactions = await prisma.transaction.findMany({
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
+      const where = {}
+      
+      const [transactions, total] = await Promise.all([
+        prisma.transaction.findMany({
+          where,
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+              },
             },
-          },
-          company: {
-            select: {
-              id: true,
-              name: true,
+            company: {
+              select: {
+                id: true,
+                name: true,
+              },
             },
-          },
-          cashAccount: {
-            select: {
-              id: true,
-              name: true,
-              type: true,
-            }
-          },
-          invoice: {
-            select: {
-              id: true,
-              number: true,
-              client: {
-                select: {
-                  name: true
+            cashAccount: {
+              select: {
+                id: true,
+                name: true,
+                type: true,
+              }
+            },
+            invoice: {
+              select: {
+                id: true,
+                number: true,
+                client: {
+                  select: {
+                    name: true
+                  }
                 }
               }
             }
-          }
-        },
-        orderBy: { date: 'desc' },
-      })
+          },
+          orderBy: { date: 'desc' },
+          skip,
+          take,
+        }),
+        prisma.transaction.count({ where })
+      ])
 
-      return NextResponse.json(transactions)
+      const response: PaginationResponse<typeof transactions[0]> = {
+        data: transactions,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+          hasNext: page * limit < total,
+          hasPrev: page > 1,
+        },
+      }
+
+      return NextResponse.json(response)
     }
 
     // Admin ve User sadece kendi şirketinin işlemlerini görebilir
     if (session.user.companyId) {
-      const transactions = await prisma.transaction.findMany({
-        where: { 
-          companyId: session.user.companyId!,
-          isDeleted: false // Soft delete edilmemiş işlemler
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
+      const where = { 
+        companyId: session.user.companyId!,
+        isDeleted: false // Soft delete edilmemiş işlemler
+      }
+      
+      const [transactions, total] = await Promise.all([
+        prisma.transaction.findMany({
+          where,
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+              },
             },
-          },
-          cashAccount: {
-            select: {
-              id: true,
-              name: true,
-              type: true,
-            }
-          },
-          invoice: {
-            select: {
-              id: true,
-              number: true,
-              client: {
-                select: {
-                  name: true
+            cashAccount: {
+              select: {
+                id: true,
+                name: true,
+                type: true,
+              }
+            },
+            invoice: {
+              select: {
+                id: true,
+                number: true,
+                client: {
+                  select: {
+                    name: true
+                  }
                 }
               }
             }
-          }
-        },
-        orderBy: { date: 'desc' },
-      })
+          },
+          orderBy: { date: 'desc' },
+          skip,
+          take,
+        }),
+        prisma.transaction.count({ where })
+      ])
 
-      return NextResponse.json(transactions)
+      const response: PaginationResponse<typeof transactions[0]> = {
+        data: transactions,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+          hasNext: page * limit < total,
+          hasPrev: page > 1,
+        },
+      }
+
+      return NextResponse.json(response)
     }
 
-    return NextResponse.json([])
+    const emptyResponse: PaginationResponse<never> = {
+      data: [],
+      pagination: {
+        page: 1,
+        limit: 10,
+        total: 0,
+        totalPages: 0,
+        hasNext: false,
+        hasPrev: false,
+      },
+    }
+
+    return NextResponse.json(emptyResponse)
   } catch (error) {
     console.error('Transaction fetch error:', error)
     return NextResponse.json(

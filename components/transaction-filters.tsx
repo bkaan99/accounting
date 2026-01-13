@@ -150,62 +150,65 @@ export function TransactionFilters({
 
   return (
     <div className="space-y-4">
-      {/* Filter Toggle Button */}
-      <div className="flex items-center justify-between">
-        <Button
-          variant="outline"
-          onClick={() => setShowFilters(!showFilters)}
-          className="flex items-center space-x-2"
-        >
-          <Filter className="h-4 w-4" />
-          <span>Filtreler</span>
-          {hasActiveFilters() && (
-            <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full dark:bg-blue-900 dark:text-blue-200">
-              {getFilterCount()}
-            </span>
-          )}
-        </Button>
-
-        {hasActiveFilters() && (
+      {/* Quick Filters and Filter Toggle Button */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        {/* Quick Filters */}
+        <div className="flex flex-wrap gap-2">
           <Button
-            variant="ghost"
+            variant={filters.type === 'ALL' ? 'default' : 'outline'}
             size="sm"
-            onClick={clearFilters}
-            className="text-gray-500 hover:text-gray-700"
+            onClick={() => setFilters((prev) => ({ ...prev, type: 'ALL' }))}
           >
-            <X className="h-4 w-4 mr-1" />
-            Temizle
+            Tümü
           </Button>
-        )}
-      </div>
+          <Button
+            variant={filters.type === 'INCOME' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setFilters((prev) => ({ ...prev, type: 'INCOME' }))}
+            className="text-green-600 border-green-600 hover:bg-green-50 dark:text-green-400 dark:border-green-400"
+          >
+            <TrendingUp className="h-4 w-4 mr-1" />
+            Gelir
+          </Button>
+          <Button
+            variant={filters.type === 'EXPENSE' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setFilters((prev) => ({ ...prev, type: 'EXPENSE' }))}
+            className="text-red-600 border-red-600 hover:bg-red-50 dark:text-red-400 dark:border-red-400"
+          >
+            <TrendingDown className="h-4 w-4 mr-1" />
+            Gider
+          </Button>
+        </div>
 
-      {/* Quick Filters */}
-      <div className="flex flex-wrap gap-2">
-        <Button
-          variant={filters.type === 'ALL' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilters((prev) => ({ ...prev, type: 'ALL' }))}
-        >
-          Tümü
-        </Button>
-        <Button
-          variant={filters.type === 'INCOME' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilters((prev) => ({ ...prev, type: 'INCOME' }))}
-          className="text-green-600 border-green-600 hover:bg-green-50 dark:text-green-400 dark:border-green-400"
-        >
-          <TrendingUp className="h-4 w-4 mr-1" />
-          Gelir
-        </Button>
-        <Button
-          variant={filters.type === 'EXPENSE' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilters((prev) => ({ ...prev, type: 'EXPENSE' }))}
-          className="text-red-600 border-red-600 hover:bg-red-50 dark:text-red-400 dark:border-red-400"
-        >
-          <TrendingDown className="h-4 w-4 mr-1" />
-          Gider
-        </Button>
+        {/* Filter Toggle Button */}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center space-x-2"
+          >
+            <Filter className="h-4 w-4" />
+            <span>Filtreler</span>
+            {hasActiveFilters() && (
+              <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full dark:bg-blue-900 dark:text-blue-200">
+                {getFilterCount()}
+              </span>
+            )}
+          </Button>
+
+          {hasActiveFilters() && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearFilters}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <X className="h-4 w-4 mr-1" />
+              Temizle
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Advanced Filters */}

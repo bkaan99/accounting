@@ -23,7 +23,7 @@ export default async function AdminSystemPage() {
 
   const systemInfo = {
     version: '1.0.0',
-    database: 'SQLite (dev.db)',
+    database: 'PostgreSQL',
     uptime: '2 gün 14 saat',
     lastBackup: '2024-01-15 09:30:00',
     environment: 'Development',

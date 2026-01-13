@@ -38,4 +38,6 @@ next-env.d.ts
 
 # prisma
 /prisma/migrations
-prisma/prisma/dev.db
+# SQLite dosyaları (artık kullanılmıyor, PostgreSQL kullanılıyor)
+*.db
+*.db-journal

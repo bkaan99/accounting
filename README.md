@@ -31,6 +31,51 @@ Modern ve kullanıcı dostu bir muhasebe uygulaması. Next.js 14, Prisma, NextAu
 
 ## 🚀 Kurulum
 
+### Docker ile Kurulum (Önerilen)
+
+1. **Projeyi klonlayın:**
+\`\`\`bash
+git clone <repo-url>
+cd muhasebe-uygulamasi
+\`\`\`
+
+2. **Çevre değişkenlerini ayarlayın:**
+\`\`\`bash
+cp .env.example .env
+\`\`\`
+
+\`.env\` dosyasını düzenleyin ve PostgreSQL bilgilerini ayarlayın:
+\`\`\`env
+POSTGRES_USER=muhasebe
+POSTGRES_PASSWORD=güvenli-şifre-buraya
+POSTGRES_DB=muhasebe_db
+DATABASE_URL="postgresql://muhasebe:güvenli-şifre-buraya@postgres:5432/muhasebe_db"
+NEXTAUTH_SECRET="your-secret-key-here"
+NEXTAUTH_URL="http://localhost:3000"
+NODE_ENV="development"
+\`\`\`
+
+3. **Docker Compose ile başlatın:**
+\`\`\`bash
+docker-compose up -d
+\`\`\`
+
+4. **Veritabanını hazırlayın:**
+\`\`\`bash
+# Container içine gir
+docker-compose exec app sh
+
+# Veritabanını oluştur
+npx prisma db push
+
+# Seed verilerini yükle (opsiyonel)
+npm run db:seed
+\`\`\`
+
+Uygulama [http://localhost:3000](http://localhost:3000) adresinde çalışacaktır.
+
+### Manuel Kurulum
+
 1. **Projeyi klonlayın:**
 \`\`\`bash
 git clone <repo-url>
@@ -42,7 +87,13 @@ cd muhasebe-uygulamasi
 npm install
 \`\`\`
 
-3. **Çevre değişkenlerini ayarlayın:**
+3. **PostgreSQL veritabanını oluşturun:**
+\`\`\`bash
+# PostgreSQL'e bağlanın ve veritabanı oluşturun
+createdb muhasebe_db
+\`\`\`
+
+4. **Çevre değişkenlerini ayarlayın:**
 \`\`\`bash
 cp .env.example .env
 \`\`\`
@@ -55,13 +106,13 @@ NEXTAUTH_URL="http://localhost:3000"
 NODE_ENV="development"
 \`\`\`
 
-4. **Veritabanını hazırlayın:**
+5. **Veritabanını hazırlayın:**
 \`\`\`bash
 npx prisma db push
 npm run db:seed
 \`\`\`
 
-5. **Uygulamayı başlatın:**
+6. **Uygulamayı başlatın:**
 \`\`\`bash
 npm run dev
 \`\`\`

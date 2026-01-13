@@ -1,4 +1,22 @@
 services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: muhasebe-postgres
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-muhasebe}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-muhasebe123}
+      - POSTGRES_DB=${POSTGRES_DB:-muhasebe_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-muhasebe}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   app:
     build:
       context: .
@@ -8,12 +26,12 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=file:./prisma/prisma/dev.db
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-muhasebe}:${POSTGRES_PASSWORD:-muhasebe123}@postgres:5432/${POSTGRES_DB:-muhasebe_db}
       - NEXTAUTH_URL=http://localhost:3000
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-change-this-secret-in-production}
-    volumes:
-      # Veritabanı dosyasını kalıcı hale getir
-      - ./prisma/prisma:/app/prisma/prisma
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
@@ -21,4 +39,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+volumes:
+  postgres_data:
 

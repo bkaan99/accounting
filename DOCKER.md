@@ -17,7 +17,9 @@ Bu proje Docker ile containerize edilmiştir. Aşağıdaki adımları takip eder
 cp .env.example .env
 ```
 
-Önemli: `NEXTAUTH_SECRET` değerini güvenli bir şekilde değiştirin.
+Önemli: 
+- `NEXTAUTH_SECRET` değerini güvenli bir şekilde değiştirin.
+- `POSTGRES_PASSWORD` değerini production ortamında mutlaka değiştirin.
 
 ### 2. Docker Compose ile Çalıştırma
 
@@ -34,18 +36,20 @@ docker-compose down
 
 ### 3. Veritabanını Başlatma
 
-İlk çalıştırmada veritabanını oluşturmanız gerekebilir:
+PostgreSQL servisi otomatik olarak başlatılır. İlk çalıştırmada veritabanı şemasını oluşturmanız gerekir:
 
 ```bash
 # Container içine gir
 docker-compose exec app sh
 
-# Veritabanını oluştur
+# Veritabanı şemasını oluştur
 npx prisma db push
 
 # Seed verilerini yükle (opsiyonel)
 npm run db:seed
 ```
+
+**Not:** PostgreSQL servisi sağlıklı hale gelene kadar app servisi bekler (healthcheck ile).
 
 ## Manuel Docker Komutları
 
@@ -57,18 +61,16 @@ docker build -t muhasebe-app .
 
 ### Run
 
-```bash
-docker run -p 3000:3000 \
-  -e DATABASE_URL="file:./prisma/prisma/dev.db" \
-  -e NEXTAUTH_URL="http://localhost:3000" \
-  -e NEXTAUTH_SECRET="your-secret-here" \
-  -v $(pwd)/prisma/prisma:/app/prisma/prisma \
-  muhasebe-app
-```
+PostgreSQL servisi ayrı bir container olarak çalıştırılmalıdır. Docker Compose kullanmanız önerilir.
 
 ## Production Kullanımı
 
-Production ortamında SQLite yerine PostgreSQL kullanmanız önerilir. `docker-compose.prod.yml` dosyası oluşturarak PostgreSQL ekleyebilirsiniz.
+Proje artık PostgreSQL kullanmaktadır. Production ortamında:
+
+1. Güvenli bir `POSTGRES_PASSWORD` belirleyin
+2. `NEXTAUTH_SECRET` değerini güvenli bir şekilde oluşturun
+3. Veritabanı yedekleme stratejisi oluşturun
+4. PostgreSQL volume'ünü düzenli olarak yedekleyin
 
 ## Sorun Giderme
 
@@ -83,7 +85,18 @@ ports:
 
 ### Veritabanı Sorunları
 
-Veritabanı dosyası container içinde kalıcı olmalı. Volume mount'un doğru çalıştığından emin olun.
+PostgreSQL veritabanı `postgres_data` volume'ünde saklanır. Volume'ün doğru çalıştığından emin olun:
+
+```bash
+# Volume'leri kontrol et
+docker volume ls
+
+# PostgreSQL loglarını kontrol et
+docker-compose logs postgres
+
+# PostgreSQL'e bağlanmayı test et
+docker-compose exec postgres psql -U muhasebe -d muhasebe_db
+```
 
 ### Build Hataları
 

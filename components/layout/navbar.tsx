@@ -4,7 +4,15 @@ import { signOut, useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { NotificationDropdown } from '@/components/notifications/notification-dropdown'
-import { Menu, LogOut, User, Building2 } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Menu, LogOut, User, Building2, ChevronDown } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
 interface NavbarProps {
@@ -97,23 +105,41 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
       </div>
 
       <div className="flex items-center space-x-4">
-        <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-300 bg-gray-100/50 dark:bg-gray-800/30 px-3 py-2 rounded-lg backdrop-blur-sm">
-          <User className="h-4 w-4" />
-          <span>{session?.user?.email}</span>
-        </div>
         {session?.user?.id && (
           <NotificationDropdown userId={session.user.id} />
         )}
         <ThemeToggle />
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleSignOut}
-          className="modern-button flex items-center space-x-2 bg-red-50/50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30"
-        >
-          <LogOut className="h-4 w-4" />
-          <span>Çıkış</span>
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-300 bg-gray-100/50 dark:bg-gray-800/30 px-3 py-2 rounded-lg backdrop-blur-sm hover:bg-gray-200/50 dark:hover:bg-gray-700/50"
+            >
+              <User className="h-4 w-4" />
+              <span>{session?.user?.email}</span>
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-medium">{session?.user?.name}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{session?.user?.email}</p>
+                {session?.user?.company && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{session.user.company}</p>
+                )}
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={handleSignOut}
+              className="text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400 cursor-pointer"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              <span>Çıkış Yap</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   )

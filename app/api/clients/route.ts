@@ -1,19 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { ClientSchema } from '@/lib/validations'
 import { createNotification } from '@/lib/notifications'
 import { parsePaginationParams, type PaginationResponse } from '@/lib/utils'
-import { handleApiError, ApiErrors } from '@/lib/error-handler'
+import { handleApiError } from '@/lib/error-handler'
+import { requireAuth, requireValidCompany, isSuperAdmin } from '@/lib/auth-helpers'
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return ApiErrors.unauthorized()
+    const authResult = await requireAuth()
+    if ('response' in authResult) {
+      return authResult.response
     }
+    const { session } = authResult
 
     // Pagination parametrelerini al
     const searchParams = request.nextUrl.searchParams
@@ -45,82 +44,42 @@ export async function GET(request: NextRequest) {
       },
     }
 
-    // Süperadmin tüm tedarikçileri görebilir
-    if (session.user.role === 'SUPERADMIN') {
-      const where = {}
-      
-      const [clients, total] = await Promise.all([
-        prisma.client.findMany({
-          where,
-          select: clientSelect,
-          orderBy: { createdAt: 'desc' },
-          skip,
-          take,
-        }),
-        prisma.client.count({ where })
-      ])
-
-      const response: PaginationResponse<typeof clients[0]> = {
-        data: clients,
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages: Math.ceil(total / limit),
-          hasNext: page * limit < total,
-          hasPrev: page > 1,
-        },
-      }
-
-      return NextResponse.json(response)
+    // Şirket erişim kontrolü için where clause oluştur
+    const companyWhere = isSuperAdmin(session) 
+      ? {} 
+      : session.user.companyId 
+        ? { companyId: session.user.companyId }
+        : { id: 'never-match' } // Hiçbir tedarikçi eşleşmeyecek
+    
+    const where = {
+      ...companyWhere,
+      ...(session.user.role !== 'SUPERADMIN' && { isDeleted: false }), // Soft delete edilmemiş tedarikçiler (sadece admin/user için)
     }
+    
+    const [clients, total] = await Promise.all([
+      prisma.client.findMany({
+        where,
+        select: clientSelect,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      prisma.client.count({ where })
+    ])
 
-    // Admin ve User sadece kendi şirketinin tedarikçilerini görebilir
-    if (session.user.companyId) {
-      const where = { 
-        companyId: session.user.companyId,
-        isDeleted: false // Soft delete edilmemiş tedarikçiler
-      }
-      
-      const [clients, total] = await Promise.all([
-        prisma.client.findMany({
-          where,
-          select: clientSelect,
-          orderBy: { createdAt: 'desc' },
-          skip,
-          take,
-        }),
-        prisma.client.count({ where })
-      ])
-
-      const response: PaginationResponse<typeof clients[0]> = {
-        data: clients,
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages: Math.ceil(total / limit),
-          hasNext: page * limit < total,
-          hasPrev: page > 1,
-        },
-      }
-
-      return NextResponse.json(response)
-    }
-
-    const emptyResponse: PaginationResponse<never> = {
-      data: [],
+    const response: PaginationResponse<typeof clients[0]> = {
+      data: clients,
       pagination: {
-        page: 1,
-        limit: 10,
-        total: 0,
-        totalPages: 0,
-        hasNext: false,
-        hasPrev: false,
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNext: page * limit < total,
+        hasPrev: page > 1,
       },
     }
 
-    return NextResponse.json(emptyResponse)
+    return NextResponse.json(response)
   } catch (error) {
     return handleApiError(error, 'GET /api/clients')
   }
@@ -128,47 +87,27 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return ApiErrors.unauthorized()
+    const authResult = await requireValidCompany()
+    if ('response' in authResult) {
+      return authResult.response
     }
+    const { session, company } = authResult
 
     const body = await request.json()
     const validatedData = ClientSchema.parse(body)
-
-    // Kullanıcının şirketi yoksa tedarikçi oluşturamaz
-    if (!session.user.companyId) {
-      return NextResponse.json(
-        { error: 'Şirket bilgisi bulunamadı' },
-        { status: 400 }
-      )
-    }
-
-    // Şirketin var olup olmadığını kontrol et
-    const company = await prisma.company.findUnique({
-      where: { id: session.user.companyId },
-    })
-
-    if (!company) {
-      return NextResponse.json(
-        { error: 'Şirket bulunamadı. Lütfen sistem yöneticisi ile iletişime geçin.' },
-        { status: 400 }
-      )
-    }
 
     const client = await prisma.client.create({
       data: {
         ...validatedData,
         userId: session.user.id,
-        companyId: session.user.companyId,
+        companyId: company.id,
       },
     })
 
     // Yeni tedarikçi eklendiğinde bildirim gönder (tercih açıksa)
     createNotification({
       userId: session.user.id,
-      companyId: session.user.companyId,
+      companyId: company.id,
       type: 'CLIENT_ADDED',
       priority: 'LOW',
       title: 'Yeni Tedarikçi Eklendi',

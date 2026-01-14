@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { CompanySchema } from '@/lib/validations'
 import { handleApiError, ApiErrors } from '@/lib/error-handler'
+import { requireAuth, requireSuperAdmin, isSuperAdmin } from '@/lib/auth-helpers'
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return ApiErrors.unauthorized()
+    const authResult = await requireAuth()
+    if ('response' in authResult) {
+      return authResult.response
     }
+    const { session } = authResult
 
     const companySelect = {
       id: true,
@@ -33,27 +32,20 @@ export async function GET(request: NextRequest) {
       },
     }
 
-    // Süperadmin tüm şirketleri görebilir
-    if (session.user.role === 'SUPERADMIN') {
-      const companies = await prisma.company.findMany({
-        select: companySelect,
-        orderBy: { createdAt: 'desc' },
-      })
+    // Şirket erişim kontrolü için where clause oluştur
+    const where = isSuperAdmin(session) 
+      ? {} 
+      : session.user.companyId 
+        ? { companyId: session.user.companyId }
+        : { id: 'never-match' } // Hiçbir şirket eşleşmeyecek
+    
+    const companies = await prisma.company.findMany({
+      where,
+      select: companySelect,
+      orderBy: { createdAt: 'desc' },
+    })
 
-      return NextResponse.json(companies)
-    }
-
-    // Admin ve User sadece kendi şirketlerini görebilir
-    if (session.user.companyId) {
-      const company = await prisma.company.findUnique({
-        where: { id: session.user.companyId },
-        select: companySelect,
-      })
-
-      return NextResponse.json(company ? [company] : [])
-    }
-
-    return NextResponse.json([])
+    return NextResponse.json(companies)
   } catch (error) {
     return handleApiError(error, 'GET /api/companies')
   }
@@ -61,12 +53,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-
-    // Sadece süperadmin şirket oluşturabilir
-    if (!session?.user?.id || session.user.role !== 'SUPERADMIN') {
-      return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 })
+    const authResult = await requireSuperAdmin()
+    if ('response' in authResult) {
+      return authResult.response
     }
+    const { session } = authResult
 
     const body = await request.json()
     
@@ -123,9 +114,7 @@ export async function POST(request: NextRequest) {
     })
 
     return NextResponse.json(company, { status: 201 })
-  } catch (error: any) {
-    console.error('Şirket oluşturulurken hata:', error)
-    
+  } catch (error) {
     return handleApiError(error, 'POST /api/companies')
   }
 }

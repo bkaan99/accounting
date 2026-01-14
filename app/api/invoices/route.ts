@@ -1,27 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { invoiceSchema } from '@/lib/validations'
 import { createNotification } from '@/lib/notifications'
 import { updateInvoiceStatus } from '@/lib/invoice-status'
 import { parsePaginationParams, type PaginationResponse } from '@/lib/utils'
-import { handleApiError, ApiErrors } from '@/lib/error-handler'
+import { handleApiError } from '@/lib/error-handler'
+import { requireAuth, requireValidCompany, isSuperAdmin } from '@/lib/auth-helpers'
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return ApiErrors.unauthorized()
+    const authResult = await requireAuth()
+    if ('response' in authResult) {
+      return authResult.response
     }
+    const { session } = authResult
 
     // Pagination parametrelerini al
     const searchParams = request.nextUrl.searchParams
     const { page, limit, skip, take } = parsePaginationParams(searchParams, 10)
 
     // Süperadmin tüm faturaları görebilir
-    if (session.user.role === 'SUPERADMIN') {
+    if (isSuperAdmin(session)) {
       const where = {
         isDeleted: false
       }
@@ -132,7 +131,7 @@ export async function GET(request: NextRequest) {
     // Admin ve User sadece kendi şirketinin faturalarını görebilir
     if (session.user.companyId) {
       const where = { 
-        companyId: session.user.companyId!,
+        companyId: session.user.companyId,
         isDeleted: false // Soft delete edilmemiş faturalar
       }
       
@@ -254,31 +253,14 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return ApiErrors.unauthorized()
+    const authResult = await requireValidCompany()
+    if ('response' in authResult) {
+      return authResult.response
     }
+    const { session, company } = authResult
 
     const body = await request.json()
     const validatedData = invoiceSchema.parse(body)
-
-    // Kullanıcının şirketi yoksa fatura oluşturamaz
-    if (!session.user.companyId) {
-      return ApiErrors.badRequest('Şirket bilgisi bulunamadı')
-    }
-
-    // Şirketin var olup olmadığını kontrol et
-    const company = await prisma.company.findUnique({
-      where: { id: session.user.companyId },
-    })
-
-    if (!company) {
-      return NextResponse.json(
-        { error: 'Şirket bulunamadı. Lütfen sistem yöneticisi ile iletişime geçin.' },
-        { status: 400 }
-      )
-    }
 
     // Generate unique invoice number
     const generateInvoiceNumber = async (): Promise<string> => {
@@ -289,7 +271,7 @@ export async function POST(request: NextRequest) {
       // Get the latest invoice number for this company in this month
       const latestInvoice = await prisma.invoice.findFirst({
         where: {
-          companyId: session.user.companyId!,
+          companyId: company.id,
           number: {
             startsWith: `INV-${year}${month}`
           }
@@ -329,7 +311,7 @@ export async function POST(request: NextRequest) {
         data: {
           number: invoiceNumber,
           userId: session.user.id,
-          companyId: session.user.companyId!,
+          companyId: company.id,
           clientId: validatedData.clientId,
           issueDate: new Date(validatedData.issueDate),
           dueDate: new Date(validatedData.dueDate),
@@ -387,7 +369,7 @@ export async function POST(request: NextRequest) {
       await tx.transaction.create({
         data: {
           userId: session.user.id,
-          companyId: session.user.companyId!,
+          companyId: company.id,
           type: 'EXPENSE',
           category: 'Tedarikçi Faturası',
           amount: totalAmount,
@@ -404,7 +386,7 @@ export async function POST(request: NextRequest) {
     // Fatura oluşturulduğunda bildirim gönder
     createNotification({
       userId: session.user.id,
-      companyId: session.user.companyId,
+      companyId: company.id,
       type: 'INVOICE_CREATED',
       priority: 'LOW',
       title: 'Yeni Fatura Oluşturuldu',

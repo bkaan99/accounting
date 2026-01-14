@@ -1,18 +1,17 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createNotification } from '@/lib/notifications'
 import { UserCreateSchema } from '@/lib/validations'
-import { handleApiError, ApiErrors } from '@/lib/error-handler'
+import { handleApiError } from '@/lib/error-handler'
+import { requireSuperAdmin } from '@/lib/auth-helpers'
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id || session.user.role !== 'SUPERADMIN') {
-      return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 })
+    const authResult = await requireSuperAdmin()
+    if ('response' in authResult) {
+      return authResult.response
     }
+    const { session } = authResult
 
     const users = await prisma.user.findMany({
       orderBy: { createdAt: 'desc' },
@@ -51,11 +50,11 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id || session.user.role !== 'SUPERADMIN') {
-      return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 })
+    const authResult = await requireSuperAdmin()
+    if ('response' in authResult) {
+      return authResult.response
     }
+    const { session } = authResult
 
     const body = await request.json()
     

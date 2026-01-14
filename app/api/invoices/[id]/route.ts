@@ -1,24 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createNotification } from '@/lib/notifications'
 import { updateInvoiceStatus } from '@/lib/invoice-status'
 import { InvoiceUpdateSchema, invoiceSchema } from '@/lib/validations'
+import { handleApiError, ApiErrors } from '@/lib/error-handler'
+import { requireAuth, isSuperAdmin } from '@/lib/auth-helpers'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireAuth()
+    if ('response' in authResult) {
+      return authResult.response
     }
+    const { session } = authResult
 
-    let invoice
-    
     const invoiceSelect = {
       id: true,
       number: true,
@@ -56,36 +54,26 @@ export async function GET(
       },
     }
     
-    // Süperadmin tüm faturaları görebilir
-    if (session.user.role === 'SUPERADMIN') {
-      invoice = await prisma.invoice.findUnique({
-        where: { 
+    // Şirket erişim kontrolü için where clause oluştur
+    const where = isSuperAdmin(session)
+      ? { id: params.id }
+      : { 
           id: params.id,
-        },
-        select: invoiceSelect,
-      })
-    } else {
-      // Admin ve User sadece kendi şirketinin faturalarını görebilir
-      invoice = await prisma.invoice.findUnique({
-        where: { 
-          id: params.id,
-          companyId: session.user.companyId,
-        },
-        select: invoiceSelect,
-      })
-    }
+          companyId: session.user.companyId || 'never-match',
+        }
+
+    const invoice = await prisma.invoice.findUnique({
+      where,
+      select: invoiceSelect,
+    })
 
     if (!invoice) {
-      return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
+      return ApiErrors.notFound('Fatura bulunamadı')
     }
 
     return NextResponse.json(invoice)
   } catch (error) {
-    console.error('Invoice fetch error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'GET /api/invoices/[id]')
   }
 }
 
@@ -94,11 +82,11 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireAuth()
+    if ('response' in authResult) {
+      return authResult.response
     }
+    const { session } = authResult
 
     const body = await request.json()
     

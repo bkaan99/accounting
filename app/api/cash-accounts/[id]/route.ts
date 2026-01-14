@@ -1,19 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { CashAccountUpdateSchema } from '@/lib/validations'
+import { handleApiError, ApiErrors } from '@/lib/error-handler'
+import { checkCashAccountAccess } from '@/lib/auth-helpers'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const accessResult = await checkCashAccountAccess(params.id)
+    if ('response' in accessResult) {
+      return accessResult.response
     }
+    const { session } = accessResult
 
     const cashAccount = await prisma.cashAccount.findUnique({
       where: { id: params.id },
@@ -68,21 +68,12 @@ export async function GET(
     })
 
     if (!cashAccount) {
-      return NextResponse.json({ error: 'Kasa bulunamadı' }, { status: 404 })
-    }
-
-    // Yetki kontrolü
-    if (session.user.role !== 'SUPERADMIN' && cashAccount.companyId !== session.user.companyId) {
-      return NextResponse.json({ error: 'Bu kasaya erişim yetkiniz yok' }, { status: 403 })
+      return ApiErrors.notFound('Kasa bulunamadı')
     }
 
     return NextResponse.json(cashAccount)
   } catch (error) {
-    console.error('Cash account fetch error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'GET /api/cash-accounts/[id]')
   }
 }
 
@@ -91,30 +82,17 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const accessResult = await checkCashAccountAccess(params.id)
+    if ('response' in accessResult) {
+      return accessResult.response
     }
+    const { session, cashAccount: existingCashAccount } = accessResult
 
     const body = await request.json()
     
     // Zod validation
     const validatedData = CashAccountUpdateSchema.parse(body)
     const { name, type, description, isActive } = validatedData
-
-    const existingCashAccount = await prisma.cashAccount.findUnique({
-      where: { id: params.id },
-    })
-
-    if (!existingCashAccount) {
-      return NextResponse.json({ error: 'Kasa bulunamadı' }, { status: 404 })
-    }
-
-    // Yetki kontrolü
-    if (session.user.role !== 'SUPERADMIN' && existingCashAccount.companyId !== session.user.companyId) {
-      return NextResponse.json({ error: 'Bu kasayı düzenleme yetkiniz yok' }, { status: 403 })
-    }
 
     // Aynı isimde başka kasa var mı kontrol et
     if (name && name !== existingCashAccount.name) {
@@ -146,21 +124,8 @@ export async function PUT(
     })
 
     return NextResponse.json(updatedCashAccount)
-  } catch (error: any) {
-    console.error('Cash account update error:', error)
-    
-    // Zod validation errors
-    if (error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: 'Geçersiz veri', details: error.errors },
-        { status: 400 }
-      )
-    }
-    
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+  } catch (error) {
+    return handleApiError(error, 'PUT /api/cash-accounts/[id]')
   }
 }
 
@@ -169,11 +134,11 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const accessResult = await checkCashAccountAccess(params.id)
+    if ('response' in accessResult) {
+      return accessResult.response
     }
+    const { session } = accessResult
 
     const existingCashAccount = await prisma.cashAccount.findUnique({
       where: { id: params.id },
@@ -189,12 +154,7 @@ export async function DELETE(
     })
 
     if (!existingCashAccount) {
-      return NextResponse.json({ error: 'Kasa bulunamadı' }, { status: 404 })
-    }
-
-    // Yetki kontrolü
-    if (session.user.role !== 'SUPERADMIN' && existingCashAccount.companyId !== session.user.companyId) {
-      return NextResponse.json({ error: 'Bu kasayı silme yetkiniz yok' }, { status: 403 })
+      return ApiErrors.notFound('Kasa bulunamadı')
     }
 
     // Eğer kasa ile ilişkili işlemler varsa, kasayı pasif yap ve işlemleri temizle
@@ -229,10 +189,6 @@ export async function DELETE(
 
     return NextResponse.json({ message: 'Kasa başarıyla silindi' })
   } catch (error) {
-    console.error('Cash account delete error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'DELETE /api/cash-accounts/[id]')
   }
 }

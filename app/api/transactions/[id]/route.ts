@@ -1,22 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { updateInvoiceStatus } from '@/lib/invoice-status'
 import { createNotification } from '@/lib/notifications'
 import { TransactionUpdateSchema } from '@/lib/validations'
 import { handleApiError, ApiErrors } from '@/lib/error-handler'
+import { requireAuth } from '@/lib/auth-helpers'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return ApiErrors.unauthorized()
+    const authResult = await requireAuth()
+    if ('response' in authResult) {
+      return authResult.response
     }
+    const { session } = authResult
 
     const transaction = await prisma.transaction.findUnique({
       where: { 
@@ -40,11 +39,11 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return ApiErrors.unauthorized()
+    const authResult = await requireAuth()
+    if ('response' in authResult) {
+      return authResult.response
     }
+    const { session } = authResult
 
     const body = await request.json()
     
@@ -54,6 +53,12 @@ export async function PUT(
       select: {
         id: true,
         invoiceId: true,
+        companyId: true,
+        cashAccountId: true,
+        isPaid: true,
+        type: true,
+        category: true,
+        amount: true,
         cashAccount: {
           select: {
             id: true,
@@ -80,7 +85,13 @@ export async function PUT(
       validatedData = TransactionUpdateSchema.parse(body)
     }
     
-    const { type, category, amount, description, date, cashAccountId, isPaid } = validatedData
+    const cashAccountId = 'cashAccountId' in validatedData ? validatedData.cashAccountId : undefined
+    const isPaid = 'isPaid' in validatedData ? validatedData.isPaid : undefined
+    const type = 'type' in validatedData ? validatedData.type : undefined
+    const category = 'category' in validatedData ? validatedData.category : undefined
+    const amount = 'amount' in validatedData ? validatedData.amount : undefined
+    const description = 'description' in validatedData ? validatedData.description : undefined
+    const date = 'date' in validatedData ? validatedData.date : undefined
 
     // Yetki kontrolü
     if (session.user.role !== 'SUPERADMIN' && existingTransaction.companyId !== session.user.companyId) {
@@ -144,12 +155,12 @@ export async function PUT(
       if (!isInvoiceTransaction) {
         if (type) updateData.type = type
         if (category) updateData.category = category
-        if (amount !== undefined) {
-          updateData.amount = typeof amount === 'number' ? amount : parseFloat(amount)
+        if (amount !== undefined && amount !== null) {
+          updateData.amount = typeof amount === 'number' ? amount : parseFloat(amount as string)
         }
         if (description !== undefined) updateData.description = description || null
-        if (date) {
-          updateData.date = date instanceof Date ? date : new Date(date)
+        if (date && date !== null) {
+          updateData.date = date instanceof Date ? date : new Date(date as string | number)
         }
       }
 
@@ -226,11 +237,11 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return ApiErrors.unauthorized()
+    const authResult = await requireAuth()
+    if ('response' in authResult) {
+      return authResult.response
     }
+    const { session } = authResult
 
     // Mevcut işlemi getir
     const existingTransaction = await prisma.transaction.findUnique({
@@ -238,6 +249,12 @@ export async function DELETE(
       select: {
         id: true,
         invoiceId: true,
+        companyId: true,
+        cashAccountId: true,
+        isPaid: true,
+        type: true,
+        category: true,
+        amount: true,
         cashAccount: {
           select: {
             id: true,

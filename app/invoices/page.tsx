@@ -118,9 +118,15 @@ export default function InvoicesPage() {
           // Eski format (geriye uyumluluk)
           setInvoices(result)
         }
+      } else {
+        // Hata durumunda loglama
+        const errorData = await response.json().catch(() => ({}))
+        console.error('Error fetching invoices:', response.status, errorData)
+        setInvoices([])
       }
     } catch (error) {
       console.error('Error fetching invoices:', error)
+      setInvoices([])
     } finally {
       setLoading(false)
     }

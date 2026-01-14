@@ -222,9 +222,21 @@ export function NotificationDropdown({ userId }: NotificationDropdownProps) {
             )}
           </div>
           {unreadCount > 0 && (
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
               {unreadCount} okunmamış bildirim
             </p>
+          )}
+          {notifications.length > 0 && (
+            <Button
+              variant="outline"
+              className="w-full text-sm mt-2"
+              onClick={() => {
+                router.push('/notifications')
+                setIsOpen(false)
+              }}
+            >
+              Tüm bildirimleri görüntüle
+            </Button>
           )}
         </div>
 
@@ -300,21 +312,6 @@ export function NotificationDropdown({ userId }: NotificationDropdownProps) {
                 </div>
               </div>
             ))}
-          </div>
-        )}
-
-        {notifications.length > 0 && (
-          <div className="p-4 border-t">
-            <Button
-              variant="ghost"
-              className="w-full text-sm"
-              onClick={() => {
-                router.push('/notifications')
-                setIsOpen(false)
-              }}
-            >
-              Tüm bildirimleri görüntüle
-            </Button>
           </div>
         )}
       </DropdownMenuContent>

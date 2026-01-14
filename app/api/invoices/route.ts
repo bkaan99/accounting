@@ -1,43 +1,87 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { invoiceSchema } from '@/lib/validations'
 import { createNotification } from '@/lib/notifications'
 import { updateInvoiceStatus } from '@/lib/invoice-status'
+import { parsePaginationParams, type PaginationResponse } from '@/lib/utils'
+import { handleApiError } from '@/lib/error-handler'
+import { requireAuth, requireValidCompany, isSuperAdmin } from '@/lib/auth-helpers'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireAuth()
+    if ('response' in authResult) {
+      return authResult.response
     }
+    const { session } = authResult
+
+    // Pagination parametrelerini al
+    const searchParams = request.nextUrl.searchParams
+    const { page, limit, skip, take } = parsePaginationParams(searchParams, 10)
 
     // Süperadmin tüm faturaları görebilir
-    if (session.user.role === 'SUPERADMIN') {
-      const invoices = await prisma.invoice.findMany({
-        where: {
-          isDeleted: false
-        },
-        include: {
-          client: true,
-          user: {
-            select: {
-              id: true,
-              name: true,
+    if (isSuperAdmin(session)) {
+      const where = {
+        isDeleted: false
+      }
+      
+      const [invoices, total] = await Promise.all([
+        prisma.invoice.findMany({
+          where,
+          select: {
+            id: true,
+            number: true,
+            clientId: true,
+            userId: true,
+            companyId: true,
+            issueDate: true,
+            dueDate: true,
+            status: true,
+            subtotal: true,
+            taxAmount: true,
+            totalAmount: true,
+            notes: true,
+            isDeleted: true,
+            createdAt: true,
+            updatedAt: true,
+            client: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true,
+                address: true,
+                taxId: true,
+              },
+            },
+            user: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            company: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            items: {
+              select: {
+                id: true,
+                description: true,
+                quantity: true,
+                price: true,
+                total: true,
+              },
             },
           },
-          company: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          items: true,
-        },
-        orderBy: { createdAt: 'desc' },
-      })
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take,
+        }),
+        prisma.invoice.count({ where })
+      ])
 
       // Gecikmiş faturaları otomatik güncelle
       const now = new Date()
@@ -69,28 +113,79 @@ export async function GET() {
         return invoice
       })
 
-      return NextResponse.json(updatedInvoices)
+      const response: PaginationResponse<typeof updatedInvoices[0]> = {
+        data: updatedInvoices,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+          hasNext: page * limit < total,
+          hasPrev: page > 1,
+        },
+      }
+
+      return NextResponse.json(response)
     }
 
     // Admin ve User sadece kendi şirketinin faturalarını görebilir
     if (session.user.companyId) {
-      const invoices = await prisma.invoice.findMany({
-        where: { 
-          companyId: session.user.companyId!,
-          isDeleted: false // Soft delete edilmemiş faturalar
-        },
-        include: {
-          client: true,
-          user: {
-            select: {
-              id: true,
-              name: true,
+      const where = { 
+        companyId: session.user.companyId,
+        isDeleted: false // Soft delete edilmemiş faturalar
+      }
+      
+      const [invoices, total] = await Promise.all([
+        prisma.invoice.findMany({
+          where,
+          select: {
+            id: true,
+            number: true,
+            clientId: true,
+            userId: true,
+            companyId: true,
+            issueDate: true,
+            dueDate: true,
+            status: true,
+            subtotal: true,
+            taxAmount: true,
+            totalAmount: true,
+            notes: true,
+            isDeleted: true,
+            createdAt: true,
+            updatedAt: true,
+            client: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true,
+                address: true,
+                taxId: true,
+              },
+            },
+            user: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            items: {
+              select: {
+                id: true,
+                description: true,
+                quantity: true,
+                price: true,
+                total: true,
+              },
             },
           },
-          items: true,
-        },
-        orderBy: { createdAt: 'desc' },
-      })
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take,
+        }),
+        prisma.invoice.count({ where })
+      ])
 
       // Gecikmiş faturaları otomatik güncelle
       const now = new Date()
@@ -123,37 +218,49 @@ export async function GET() {
         return invoice
       })
 
-      return NextResponse.json(updatedInvoices)
+      const response: PaginationResponse<typeof updatedInvoices[0]> = {
+        data: updatedInvoices,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+          hasNext: page * limit < total,
+          hasPrev: page > 1,
+        },
+      }
+
+      return NextResponse.json(response)
     }
 
-    return NextResponse.json([])
+    const emptyResponse: PaginationResponse<never> = {
+      data: [],
+      pagination: {
+        page: 1,
+        limit: 10,
+        total: 0,
+        totalPages: 0,
+        hasNext: false,
+        hasPrev: false,
+      },
+    }
+
+    return NextResponse.json(emptyResponse)
   } catch (error) {
-    console.error('Invoice fetch error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'GET /api/invoices')
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireValidCompany()
+    if ('response' in authResult) {
+      return authResult.response
     }
+    const { session, company } = authResult
 
     const body = await request.json()
     const validatedData = invoiceSchema.parse(body)
-
-    // Kullanıcının şirketi yoksa fatura oluşturamaz
-    if (!session.user.companyId) {
-      return NextResponse.json(
-        { error: 'Şirket bilgisi bulunamadı' },
-        { status: 400 }
-      )
-    }
 
     // Generate unique invoice number
     const generateInvoiceNumber = async (): Promise<string> => {
@@ -164,7 +271,7 @@ export async function POST(request: NextRequest) {
       // Get the latest invoice number for this company in this month
       const latestInvoice = await prisma.invoice.findFirst({
         where: {
-          companyId: session.user.companyId!,
+          companyId: company.id,
           number: {
             startsWith: `INV-${year}${month}`
           }
@@ -204,7 +311,7 @@ export async function POST(request: NextRequest) {
         data: {
           number: invoiceNumber,
           userId: session.user.id,
-          companyId: session.user.companyId!,
+          companyId: company.id,
           clientId: validatedData.clientId,
           issueDate: new Date(validatedData.issueDate),
           dueDate: new Date(validatedData.dueDate),
@@ -220,9 +327,41 @@ export async function POST(request: NextRequest) {
             }))
           }
         },
-        include: {
-          client: true,
-          items: true,
+        select: {
+          id: true,
+          number: true,
+          clientId: true,
+          userId: true,
+          companyId: true,
+          issueDate: true,
+          dueDate: true,
+          status: true,
+          subtotal: true,
+          taxAmount: true,
+          totalAmount: true,
+          notes: true,
+          isDeleted: true,
+          createdAt: true,
+          updatedAt: true,
+          client: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+              address: true,
+              taxId: true,
+            },
+          },
+          items: {
+            select: {
+              id: true,
+              description: true,
+              quantity: true,
+              price: true,
+              total: true,
+            },
+          },
         }
       })
 
@@ -230,7 +369,7 @@ export async function POST(request: NextRequest) {
       await tx.transaction.create({
         data: {
           userId: session.user.id,
-          companyId: session.user.companyId!,
+          companyId: company.id,
           type: 'EXPENSE',
           category: 'Tedarikçi Faturası',
           amount: totalAmount,
@@ -247,7 +386,7 @@ export async function POST(request: NextRequest) {
     // Fatura oluşturulduğunda bildirim gönder
     createNotification({
       userId: session.user.id,
-      companyId: session.user.companyId,
+      companyId: company.id,
       type: 'INVOICE_CREATED',
       priority: 'LOW',
       title: 'Yeni Fatura Oluşturuldu',
@@ -264,10 +403,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(invoice, { status: 201 })
   } catch (error) {
-    console.error('Invoice creation error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'POST /api/invoices')
   }
 } 

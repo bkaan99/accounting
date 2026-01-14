@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { createNotification } from '@/lib/notifications'
+import { PasswordChangeSchema } from '@/lib/validations'
 
 export async function PUT(request: Request) {
   try {
@@ -13,21 +14,10 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 })
     }
 
-    const { currentPassword, newPassword } = await request.json()
-
-    if (!currentPassword || !newPassword) {
-      return NextResponse.json(
-        { error: 'Mevcut şifre ve yeni şifre gereklidir' },
-        { status: 400 }
-      )
-    }
-
-    if (newPassword.length < 6) {
-      return NextResponse.json(
-        { error: 'Yeni şifre en az 6 karakter olmalıdır' },
-        { status: 400 }
-      )
-    }
+    const body = await request.json()
+    
+    // Zod validation
+    const { currentPassword, newPassword } = PasswordChangeSchema.parse(body)
 
     // Kullanıcıyı bul
     const user = await prisma.user.findUnique({
@@ -73,8 +63,17 @@ export async function PUT(request: Request) {
     }).catch((err) => console.error('Şifre değiştirme bildirimi hatası:', err))
 
     return NextResponse.json({ message: 'Şifre başarıyla güncellendi' })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Şifre güncellenirken hata:', error)
+    
+    // Zod validation errors
+    if (error.name === 'ZodError') {
+      return NextResponse.json(
+        { error: 'Geçersiz veri', details: error.errors },
+        { status: 400 }
+      )
+    }
+    
     return NextResponse.json(
       { error: 'Şifre güncellenemedi' },
       { status: 500 }

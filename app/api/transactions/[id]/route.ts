@@ -1,20 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { updateInvoiceStatus } from '@/lib/invoice-status'
 import { createNotification } from '@/lib/notifications'
+import { TransactionUpdateSchema } from '@/lib/validations'
+import { handleApiError, ApiErrors } from '@/lib/error-handler'
+import { requireAuth } from '@/lib/auth-helpers'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireAuth()
+    if ('response' in authResult) {
+      return authResult.response
     }
+    const { session } = authResult
 
     const transaction = await prisma.transaction.findUnique({
       where: { 
@@ -24,16 +25,12 @@ export async function GET(
     })
 
     if (!transaction) {
-      return NextResponse.json({ error: 'Transaction not found' }, { status: 404 })
+      return ApiErrors.notFound('İşlem bulunamadı')
     }
 
     return NextResponse.json(transaction)
   } catch (error) {
-    console.error('Transaction fetch error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'GET /api/transactions/[id]')
   }
 }
 
@@ -42,55 +39,63 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireAuth()
+    if ('response' in authResult) {
+      return authResult.response
     }
+    const { session } = authResult
 
     const body = await request.json()
-    const { type, category, amount, description, date, cashAccountId, isPaid } = body
-
+    
     // Mevcut işlemi getir
     const existingTransaction = await prisma.transaction.findUnique({
       where: { id: params.id },
-      include: { cashAccount: true },
+      select: {
+        id: true,
+        invoiceId: true,
+        companyId: true,
+        cashAccountId: true,
+        isPaid: true,
+        type: true,
+        category: true,
+        amount: true,
+        cashAccount: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
     })
 
     if (!existingTransaction) {
-      return NextResponse.json({ error: 'İşlem bulunamadı' }, { status: 404 })
+      return ApiErrors.notFound('İşlem bulunamadı')
     }
 
     // Faturaya bağlı işlemler için sadece kasa ve ödeme durumu güncellenebilir
     const isInvoiceTransaction = !!existingTransaction.invoiceId
 
-    // Validation - Faturaya bağlı işlemler için farklı validasyon
-    if (!isInvoiceTransaction) {
-      if (!type || !category || !amount || !date) {
-        return NextResponse.json(
-          { error: 'Tüm gerekli alanları doldurunuz' },
-          { status: 400 }
-        )
-      }
-
-      if (!['INCOME', 'EXPENSE'].includes(type)) {
-        return NextResponse.json(
-          { error: 'Geçersiz işlem türü' },
-          { status: 400 }
-        )
-      }
-
-      if (amount <= 0) {
-        return NextResponse.json(
-          { error: 'Tutar pozitif olmalıdır' },
-          { status: 400 }
-        )
-      }
+    // Zod validation - Faturaya bağlı işlemler için sadece cashAccountId ve isPaid validate edilir
+    let validatedData
+    if (isInvoiceTransaction) {
+      // Faturaya bağlı işlemler için sadece kasa ve ödeme durumu
+      validatedData = TransactionUpdateSchema.pick({ cashAccountId: true, isPaid: true }).parse(body)
+    } else {
+      // Normal işlemler için tüm alanlar
+      validatedData = TransactionUpdateSchema.parse(body)
     }
+    
+    const cashAccountId = 'cashAccountId' in validatedData ? validatedData.cashAccountId : undefined
+    const isPaid = 'isPaid' in validatedData ? validatedData.isPaid : undefined
+    const type = 'type' in validatedData ? validatedData.type : undefined
+    const category = 'category' in validatedData ? validatedData.category : undefined
+    const amount = 'amount' in validatedData ? validatedData.amount : undefined
+    const description = 'description' in validatedData ? validatedData.description : undefined
+    const date = 'date' in validatedData ? validatedData.date : undefined
 
     // Yetki kontrolü
     if (session.user.role !== 'SUPERADMIN' && existingTransaction.companyId !== session.user.companyId) {
-      return NextResponse.json({ error: 'Bu işlemi düzenleme yetkiniz yok' }, { status: 403 })
+      return ApiErrors.forbidden('Bu işlemi düzenleme yetkiniz yok')
     }
 
     // Kasa seçildiyse kasa kontrolü yap
@@ -148,11 +153,15 @@ export async function PUT(
 
       // Faturaya bağlı değilse diğer alanları da güncelle
       if (!isInvoiceTransaction) {
-        updateData.type = type
-        updateData.category = category
-        updateData.amount = parseFloat(amount)
-        updateData.description = description || null
-        updateData.date = new Date(date)
+        if (type) updateData.type = type
+        if (category) updateData.category = category
+        if (amount !== undefined && amount !== null) {
+          updateData.amount = typeof amount === 'number' ? amount : parseFloat(amount as string)
+        }
+        if (description !== undefined) updateData.description = description || null
+        if (date && date !== null) {
+          updateData.date = date instanceof Date ? date : new Date(date as string | number)
+        }
       }
 
       const updatedTransaction = await tx.transaction.update({
@@ -162,9 +171,10 @@ export async function PUT(
 
       // Yeni kasa bakiyesini güncelle (eğer ödenmişse)
       if (cashAccountId && updatedTransaction.isPaid) {
+        const amountValue = updatedTransaction.amount
         const newBalanceChange = updatedTransaction.type === 'INCOME' 
-          ? updatedTransaction.amount 
-          : -updatedTransaction.amount
+          ? amountValue 
+          : -amountValue
         
         await tx.cashAccount.update({
           where: { id: cashAccountId },
@@ -218,11 +228,7 @@ export async function PUT(
 
     return NextResponse.json(transaction)
   } catch (error) {
-    console.error('Transaction update error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'PUT /api/transactions/[id]')
   }
 }
 
@@ -231,25 +237,40 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireAuth()
+    if ('response' in authResult) {
+      return authResult.response
     }
+    const { session } = authResult
 
     // Mevcut işlemi getir
     const existingTransaction = await prisma.transaction.findUnique({
       where: { id: params.id },
-      include: { cashAccount: true },
+      select: {
+        id: true,
+        invoiceId: true,
+        companyId: true,
+        cashAccountId: true,
+        isPaid: true,
+        type: true,
+        category: true,
+        amount: true,
+        cashAccount: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
     })
 
     if (!existingTransaction) {
-      return NextResponse.json({ error: 'İşlem bulunamadı' }, { status: 404 })
+      return ApiErrors.notFound('İşlem bulunamadı')
     }
 
     // Yetki kontrolü
     if (session.user.role !== 'SUPERADMIN' && existingTransaction.companyId !== session.user.companyId) {
-      return NextResponse.json({ error: 'Bu işlemi silme yetkiniz yok' }, { status: 403 })
+      return ApiErrors.forbidden('Bu işlemi silme yetkiniz yok')
     }
 
     // İşlemi sil ve kasa bakiyesini geri al

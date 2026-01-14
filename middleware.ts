@@ -3,10 +3,11 @@ import { NextResponse } from 'next/server'
 
 export default withAuth(
   function middleware(req) {
-    // Root sayfadan dashboard'a yönlendir
-    if (req.nextUrl.pathname === '/') {
+    // Giriş yapmış kullanıcılar ana sayfadan dashboard'a yönlendirilsin
+    if (req.nextUrl.pathname === '/' && req.nextauth.token) {
       return NextResponse.redirect(new URL('/dashboard', req.url))
     }
+    // Giriş yapmamış kullanıcılar ana sayfayı görebilir (yönlendirme yok)
   },
   {
     callbacks: {

@@ -95,8 +95,10 @@ export default function EditInvoicePage() {
     try {
       const response = await fetch('/api/clients')
       if (response.ok) {
-        const data = await response.json()
-        setClients(data)
+        const result = await response.json()
+        // Pagination response formatı: { data: [...], pagination: {...} }
+        const clients = result.data || result
+        setClients(clients)
       }
     } catch (error) {
       console.error('Error fetching clients:', error)

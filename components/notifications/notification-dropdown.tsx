@@ -190,13 +190,13 @@ export function NotificationDropdown({ userId }: NotificationDropdownProps) {
         <Button
           variant="ghost"
           size="icon"
-          className="relative modern-button hover:bg-blue-500/10 dark:hover:bg-blue-400/10"
+          className="relative modern-button hover:bg-blue-500/10 dark:hover:bg-blue-400/10 overflow-visible"
           aria-label="Bildirimler"
         >
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold">
-              {unreadCount > 9 ? '9+' : unreadCount}
+            <span className="absolute top-0 right-0 min-w-[20px] h-[20px] px-1.5 rounded-full bg-red-500 text-white text-[11px] font-semibold flex items-center justify-center leading-tight shadow-md z-20 border-2 border-white dark:border-gray-900 translate-x-1/2 -translate-y-1/2">
+              {unreadCount > 99 ? '99+' : unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
         </Button>
@@ -222,9 +222,21 @@ export function NotificationDropdown({ userId }: NotificationDropdownProps) {
             )}
           </div>
           {unreadCount > 0 && (
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
               {unreadCount} okunmamış bildirim
             </p>
+          )}
+          {notifications.length > 0 && (
+            <Button
+              variant="outline"
+              className="w-full text-sm mt-2"
+              onClick={() => {
+                router.push('/notifications')
+                setIsOpen(false)
+              }}
+            >
+              Tüm bildirimleri görüntüle
+            </Button>
           )}
         </div>
 
@@ -300,21 +312,6 @@ export function NotificationDropdown({ userId }: NotificationDropdownProps) {
                 </div>
               </div>
             ))}
-          </div>
-        )}
-
-        {notifications.length > 0 && (
-          <div className="p-4 border-t">
-            <Button
-              variant="ghost"
-              className="w-full text-sm"
-              onClick={() => {
-                router.push('/notifications')
-                setIsOpen(false)
-              }}
-            >
-              Tüm bildirimleri görüntüle
-            </Button>
           </div>
         )}
       </DropdownMenuContent>

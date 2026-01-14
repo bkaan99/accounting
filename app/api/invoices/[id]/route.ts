@@ -1,59 +1,79 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createNotification } from '@/lib/notifications'
 import { updateInvoiceStatus } from '@/lib/invoice-status'
+import { InvoiceUpdateSchema, invoiceSchema } from '@/lib/validations'
+import { handleApiError, ApiErrors } from '@/lib/error-handler'
+import { requireAuth, isSuperAdmin } from '@/lib/auth-helpers'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireAuth()
+    if ('response' in authResult) {
+      return authResult.response
     }
+    const { session } = authResult
 
-    let invoice
+    const invoiceSelect = {
+      id: true,
+      number: true,
+      clientId: true,
+      userId: true,
+      companyId: true,
+      issueDate: true,
+      dueDate: true,
+      status: true,
+      subtotal: true,
+      taxAmount: true,
+      totalAmount: true,
+      notes: true,
+      isDeleted: true,
+      createdAt: true,
+      updatedAt: true,
+      client: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          address: true,
+          taxId: true,
+        },
+      },
+      items: {
+        select: {
+          id: true,
+          description: true,
+          quantity: true,
+          price: true,
+          total: true,
+        },
+      },
+    }
     
-    // Süperadmin tüm faturaları görebilir
-    if (session.user.role === 'SUPERADMIN') {
-      invoice = await prisma.invoice.findUnique({
-        where: { 
+    // Şirket erişim kontrolü için where clause oluştur
+    const where = isSuperAdmin(session)
+      ? { id: params.id }
+      : { 
           id: params.id,
-        },
-        include: {
-          client: true,
-          items: true,
+          companyId: session.user.companyId || 'never-match',
         }
-      })
-    } else {
-      // Admin ve User sadece kendi şirketinin faturalarını görebilir
-      invoice = await prisma.invoice.findUnique({
-        where: { 
-          id: params.id,
-          companyId: session.user.companyId,
-        },
-        include: {
-          client: true,
-          items: true,
-        }
-      })
-    }
+
+    const invoice = await prisma.invoice.findUnique({
+      where,
+      select: invoiceSelect,
+    })
 
     if (!invoice) {
-      return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
+      return ApiErrors.notFound('Fatura bulunamadı')
     }
 
     return NextResponse.json(invoice)
   } catch (error) {
-    console.error('Invoice fetch error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'GET /api/invoices/[id]')
   }
 }
 
@@ -62,18 +82,19 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireAuth()
+    if ('response' in authResult) {
+      return authResult.response
     }
+    const { session } = authResult
 
     const body = await request.json()
     
     // Sadece durum güncellemesi mi yoksa tam düzenleme mi?
     if (body.items && body.clientId) {
-      // Tam fatura düzenlemesi
-      const { clientId, issueDate, dueDate, status, notes, items } = body
+      // Tam fatura düzenlemesi - Zod validation
+      const validatedData = invoiceSchema.parse(body)
+      const { clientId, issueDate, dueDate, status, notes, items } = validatedData
 
       // Calculate total amount
       const totalAmount = items.reduce(
@@ -128,10 +149,7 @@ export async function PUT(
               }))
             }
           },
-          include: {
-            client: true,
-            items: true,
-          }
+          select: invoiceSelect,
         })
         
         // Fatura durumunu kontrol et ve güncelle (transaction içinde)
@@ -178,7 +196,8 @@ export async function PUT(
       return NextResponse.json(invoice)
     } else {
       // Sadece durum güncellemesi - transaction'a dokunma
-      const { status, notes } = body
+      const validatedData = InvoiceUpdateSchema.pick({ status: true, notes: true }).parse(body)
+      const { status, notes } = validatedData
 
       const whereClause = session.user.role === 'SUPERADMIN' 
         ? { id: params.id }
@@ -213,10 +232,7 @@ export async function PUT(
           notes,
           updatedAt: new Date(),
         },
-        include: {
-          client: true,
-          items: true,
-        }
+        select: invoiceSelect,
       })
       
       // Fatura durumunu kontrol et ve güncelle
@@ -265,8 +281,17 @@ export async function PUT(
 
       return NextResponse.json(invoice)
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Invoice update error:', error)
+    
+    // Zod validation errors
+    if (error.name === 'ZodError') {
+      return NextResponse.json(
+        { error: 'Geçersiz veri', details: error.errors },
+        { status: 400 }
+      )
+    }
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

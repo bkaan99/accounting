@@ -1,173 +1,125 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createNotification } from '@/lib/notifications'
+import { TransactionCreateSchema } from '@/lib/validations'
+import { parsePaginationParams, type PaginationResponse } from '@/lib/utils'
+import { handleApiError } from '@/lib/error-handler'
+import { requireAuth, getCompanyWhereClause, requireValidCompany, checkCashAccountAccessAndActive } from '@/lib/auth-helpers'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const authResult = await requireAuth()
+    if ('response' in authResult) {
+      return authResult.response
+    }
+    const { session } = authResult
 
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // Pagination parametrelerini al
+    const searchParams = request.nextUrl.searchParams
+    const { page, limit, skip, take } = parsePaginationParams(searchParams, 10)
+
+    const transactionSelect = {
+      id: true,
+      userId: true,
+      companyId: true,
+      cashAccountId: true,
+      type: true,
+      category: true,
+      amount: true,
+      description: true,
+      date: true,
+      invoiceId: true,
+      isPaid: true,
+      isDeleted: true,
+      createdAt: true,
+      updatedAt: true,
+      user: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      company: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      cashAccount: {
+        select: {
+          id: true,
+          name: true,
+          type: true,
+        },
+      },
+      invoice: {
+        select: {
+          id: true,
+          number: true,
+          client: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      },
     }
 
-    // Süperadmin tüm işlemleri görebilir
-    if (session.user.role === 'SUPERADMIN') {
-      const transactions = await prisma.transaction.findMany({
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          company: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          cashAccount: {
-            select: {
-              id: true,
-              name: true,
-              type: true,
-            }
-          },
-          invoice: {
-            select: {
-              id: true,
-              number: true,
-              client: {
-                select: {
-                  name: true
-                }
-              }
-            }
-          }
-        },
+    // Şirket erişim kontrolü için where clause oluştur
+    const companyWhere = getCompanyWhereClause(session)
+    const where = {
+      ...companyWhere,
+      ...(session.user.role !== 'SUPERADMIN' && { isDeleted: false }), // Soft delete edilmemiş işlemler (sadece admin/user için)
+    }
+    
+    const [transactions, total] = await Promise.all([
+      prisma.transaction.findMany({
+        where,
+        select: transactionSelect,
         orderBy: { date: 'desc' },
-      })
+        skip,
+        take,
+      }),
+      prisma.transaction.count({ where })
+    ])
 
-      return NextResponse.json(transactions)
+    const response: PaginationResponse<typeof transactions[0]> = {
+      data: transactions,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNext: page * limit < total,
+        hasPrev: page > 1,
+      },
     }
 
-    // Admin ve User sadece kendi şirketinin işlemlerini görebilir
-    if (session.user.companyId) {
-      const transactions = await prisma.transaction.findMany({
-        where: { 
-          companyId: session.user.companyId!,
-          isDeleted: false // Soft delete edilmemiş işlemler
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          cashAccount: {
-            select: {
-              id: true,
-              name: true,
-              type: true,
-            }
-          },
-          invoice: {
-            select: {
-              id: true,
-              number: true,
-              client: {
-                select: {
-                  name: true
-                }
-              }
-            }
-          }
-        },
-        orderBy: { date: 'desc' },
-      })
-
-      return NextResponse.json(transactions)
-    }
-
-    return NextResponse.json([])
+    return NextResponse.json(response)
   } catch (error) {
-    console.error('Transaction fetch error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'GET /api/transactions')
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireValidCompany()
+    if ('response' in authResult) {
+      return authResult.response
     }
+    const { session, company } = authResult
 
     const body = await request.json()
-    const { type, category, amount, description, date, cashAccountId, isPaid = false } = body
-
-    // Validation
-    if (!type || !category || !amount || !date) {
-      return NextResponse.json(
-        { error: 'Tüm gerekli alanları doldurunuz' },
-        { status: 400 }
-      )
-    }
-
-    if (!['INCOME', 'EXPENSE'].includes(type)) {
-      return NextResponse.json(
-        { error: 'Geçersiz işlem türü' },
-        { status: 400 }
-      )
-    }
-
-    if (amount <= 0) {
-      return NextResponse.json(
-        { error: 'Tutar pozitif olmalıdır' },
-        { status: 400 }
-      )
-    }
-
-    // Kullanıcının şirketi yoksa işlem oluşturamaz
-    if (!session.user.companyId) {
-      return NextResponse.json(
-        { error: 'Şirket bilgisi bulunamadı' },
-        { status: 400 }
-      )
-    }
+    
+    // Zod validation
+    const validatedData = TransactionCreateSchema.parse(body)
+    const { type, category, amount, description, date, cashAccountId, isPaid = false } = validatedData
 
     // Kasa seçildiyse kasa kontrolü yap
     if (cashAccountId) {
-      const cashAccount = await prisma.cashAccount.findUnique({
-        where: { id: cashAccountId },
-      })
-
-      if (!cashAccount) {
-        return NextResponse.json(
-          { error: 'Kasa bulunamadı' },
-          { status: 400 }
-        )
-      }
-
-      if (cashAccount.companyId !== session.user.companyId) {
-        return NextResponse.json(
-          { error: 'Bu kasaya erişim yetkiniz yok' },
-          { status: 403 }
-        )
-      }
-
-      if (!cashAccount.isActive) {
-        return NextResponse.json(
-          { error: 'Bu kasa aktif değil' },
-          { status: 400 }
-        )
+      const cashAccountResult = await checkCashAccountAccessAndActive(cashAccountId)
+      if ('response' in cashAccountResult) {
+        return cashAccountResult.response
       }
     }
 
@@ -177,20 +129,21 @@ export async function POST(request: NextRequest) {
       const newTransaction = await tx.transaction.create({
         data: {
           userId: session.user.id,
-          companyId: session.user.companyId!,
+          companyId: company.id,
           cashAccountId: cashAccountId || null,
           type,
           category,
-          amount: parseFloat(amount),
+          amount: typeof amount === 'number' ? amount : parseFloat(amount),
           description: description || null,
-          date: new Date(date),
+          date: date instanceof Date ? date : new Date(date),
           isPaid,
         }
       })
 
       // Eğer kasa seçildiyse ve işlem ödendiyse kasa bakiyesini güncelle
       if (cashAccountId && isPaid) {
-        const balanceChange = type === 'INCOME' ? parseFloat(amount) : -parseFloat(amount)
+        const amountValue = typeof amount === 'number' ? amount : parseFloat(amount)
+        const balanceChange = type === 'INCOME' ? amountValue : -amountValue
         
         await tx.cashAccount.update({
           where: { id: cashAccountId },
@@ -212,19 +165,20 @@ export async function POST(request: NextRequest) {
     })
 
     const largeTransactionLimit = preference?.largeTransactionLimit || 10000
-    if (parseFloat(amount) >= largeTransactionLimit) {
+    const amountValue = typeof amount === 'number' ? amount : parseFloat(amount)
+    if (amountValue >= largeTransactionLimit) {
       createNotification({
         userId: session.user.id,
-        companyId: session.user.companyId,
+        companyId: company.id,
         type: 'LARGE_TRANSACTION',
         priority: 'HIGH',
         title: 'Büyük İşlem Tespit Edildi',
-        message: `${type === 'INCOME' ? 'Gelir' : 'Gider'} işlemi: ${category} - ₺${parseFloat(amount).toFixed(2)}`,
+        message: `${type === 'INCOME' ? 'Gelir' : 'Gider'} işlemi: ${category} - ₺${amountValue.toFixed(2)}`,
         link: `/transactions`,
         metadata: {
           transactionId: transaction.id,
           type,
-          amount: parseFloat(amount),
+          amount: amountValue,
           category,
         },
       }).catch((err) => console.error('Büyük işlem bildirimi hatası:', err))
@@ -243,7 +197,7 @@ export async function POST(request: NextRequest) {
         if (updatedCashAccount.balance < 0) {
           createNotification({
             userId: session.user.id,
-            companyId: session.user.companyId!,
+            companyId: company.id,
             type: 'NEGATIVE_BALANCE',
             priority: 'URGENT',
             title: 'Kasa Negatif Bakiyede!',
@@ -260,7 +214,7 @@ export async function POST(request: NextRequest) {
         else if (updatedCashAccount.balance < lowBalanceLimit && updatedCashAccount.balance >= 0) {
           createNotification({
             userId: session.user.id,
-            companyId: session.user.companyId!,
+            companyId: company.id,
             type: 'LOW_BALANCE',
             priority: 'MEDIUM',
             title: 'Düşük Bakiye Uyarısı',
@@ -279,10 +233,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(transaction, { status: 201 })
   } catch (error) {
-    console.error('Transaction creation error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'POST /api/transactions')
   }
 } 

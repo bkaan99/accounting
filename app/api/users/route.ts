@@ -1,20 +1,30 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createNotification } from '@/lib/notifications'
+import { UserCreateSchema } from '@/lib/validations'
+import { handleApiError } from '@/lib/error-handler'
+import { requireSuperAdmin } from '@/lib/auth-helpers'
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id || session.user.role !== 'SUPERADMIN') {
-      return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 })
+    const authResult = await requireSuperAdmin()
+    if ('response' in authResult) {
+      return authResult.response
     }
+    const { session } = authResult
 
     const users = await prisma.user.findMany({
       orderBy: { createdAt: 'desc' },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        address: true,
+        role: true,
+        companyId: true,
+        createdAt: true,
+        updatedAt: true,
         company: {
           select: {
             id: true,
@@ -34,23 +44,23 @@ export async function GET() {
 
     return NextResponse.json(users)
   } catch (error) {
-    console.error('Kullanıcılar getirilirken hata:', error)
-    return NextResponse.json(
-      { error: 'Kullanıcılar getirilemedi' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'GET /api/users')
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id || session.user.role !== 'SUPERADMIN') {
-      return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 })
+    const authResult = await requireSuperAdmin()
+    if ('response' in authResult) {
+      return authResult.response
     }
+    const { session } = authResult
 
-    const { name, email, phone, address, role, companyId } = await request.json()
+    const body = await request.json()
+    
+    // Zod validation
+    const validatedData = UserCreateSchema.parse(body)
+    const { name, email, phone, address, role, companyId } = validatedData
 
     // Email benzersizliği kontrolü
     const existingUser = await prisma.user.findUnique({
@@ -79,7 +89,16 @@ export async function POST(request: Request) {
         role,
         companyId,
       },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        address: true,
+        role: true,
+        companyId: true,
+        createdAt: true,
+        updatedAt: true,
         company: {
           select: {
             id: true,
@@ -127,10 +146,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json(newUser)
   } catch (error) {
-    console.error('Kullanıcı oluşturulurken hata:', error)
-    return NextResponse.json(
-      { error: 'Kullanıcı oluşturulamadı' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'POST /api/users')
   }
 } 

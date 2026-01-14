@@ -28,6 +28,7 @@ import { Plus, Search, Edit, Trash2, Mail, Phone, MapPin } from 'lucide-react'
 import { toast } from '@/components/ui/toast'
 import { LoadingButton, TableSkeleton } from '@/components/ui/loading'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { Pagination } from '@/components/ui/pagination'
 
 interface Client {
   id: string
@@ -48,6 +49,16 @@ export default function ClientsPage() {
   const [editingClient, setEditingClient] = useState<Client | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDeletingId, setIsDeletingId] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(10)
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+    hasNext: false,
+    hasPrev: false,
+  })
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -58,14 +69,23 @@ export default function ClientsPage() {
 
   useEffect(() => {
     fetchClients()
-  }, [])
+  }, [page, limit])
 
   const fetchClients = async () => {
     try {
-      const response = await fetch('/api/clients')
+      setIsLoading(true)
+      const response = await fetch(`/api/clients?page=${page}&limit=${limit}`)
       if (response.ok) {
-        const data = await response.json()
-        setClients(data)
+        const result = await response.json()
+        // Pagination response formatı: { data: [...], pagination: {...} }
+        if (result.pagination) {
+          const clients = result.data || []
+          setClients(clients)
+          setPagination(result.pagination)
+        } else {
+          // Eski format (geriye uyumluluk)
+          setClients(result)
+        }
       } else {
         toast.error('Tedarikçiler yüklenirken hata oluştu')
       }
@@ -381,6 +401,24 @@ export default function ClientsPage() {
               </Table>
             )}
           </CardContent>
+          {pagination.total > 0 && (
+            <Pagination
+              page={pagination.page}
+              limit={pagination.limit}
+              total={pagination.total}
+              totalPages={pagination.totalPages}
+              hasNext={pagination.hasNext}
+              hasPrev={pagination.hasPrev}
+              onPageChange={(newPage) => {
+                setPage(newPage)
+                window.scrollTo({ top: 0, behavior: 'smooth' })
+              }}
+              onLimitChange={(newLimit) => {
+                setLimit(newLimit)
+                setPage(1) // Limit değiştiğinde ilk sayfaya dön
+              }}
+            />
+          )}
         </Card>
       </div>
     </MainLayout>

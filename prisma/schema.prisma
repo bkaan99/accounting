@@ -28,6 +28,7 @@ model Account {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@index([userId])
 }
 
 model Session {
@@ -36,6 +37,9 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expires])
 }
 
 // Şirketler - Ana organizasyonlar (rol yok)
@@ -83,6 +87,10 @@ model User {
   transactions          Transaction[]         // Kullanıcının işlemleri
   notifications         Notification[]       // Kullanıcının bildirimleri
   notificationPreference NotificationPreference? // Bildirim tercihleri
+
+  @@index([companyId])
+  @@index([role])
+  @@index([companyId, role])
 }
 
 model VerificationToken {
@@ -91,6 +99,8 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+  @@index([identifier])
+  @@index([expires])
 }
 
 // Tedarikçiler - Şirketlere bağlı
@@ -112,6 +122,11 @@ model Client {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([companyId, isDeleted])
+  @@index([userId])
+  @@index([createdAt])
 }
 
 // Faturalar - Hem kullanıcıya hem şirkete bağlı
@@ -139,6 +154,17 @@ model Invoice {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([companyId, isDeleted])
+  @@index([companyId, status])
+  @@index([companyId, dueDate])
+  @@index([userId])
+  @@index([clientId])
+  @@index([status])
+  @@index([dueDate])
+  @@index([createdAt])
+  @@index([companyId, status, dueDate])
 }
 
 model InvoiceItem {
@@ -153,6 +179,8 @@ model InvoiceItem {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([invoiceId])
 }
 
 // Kasa Türleri - Şirketlere bağlı
@@ -172,6 +200,9 @@ model CashAccount {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([companyId, isActive])
 }
 
 // İşlemler - Hem kullanıcıya hem şirkete bağlı
@@ -197,6 +228,19 @@ model Transaction {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([companyId, isDeleted])
+  @@index([companyId, type])
+  @@index([companyId, date])
+  @@index([userId])
+  @@index([cashAccountId])
+  @@index([invoiceId])
+  @@index([type])
+  @@index([date])
+  @@index([createdAt])
+  @@index([companyId, isDeleted, date])
+  @@index([companyId, type, date])
 }
 
 // Bildirimler

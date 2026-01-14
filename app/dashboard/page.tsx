@@ -75,7 +75,22 @@ async function getDashboardData(userId: string, companyId?: string, userRole?: s
     }),
     prisma.invoice.findMany({
       where: invoiceWhere,
-      include: { client: true },
+      select: {
+        id: true,
+        number: true,
+        clientId: true,
+        totalAmount: true,
+        status: true,
+        dueDate: true,
+        createdAt: true,
+        client: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
       orderBy: { createdAt: 'desc' },
       take: 5,
     }),
@@ -86,7 +101,21 @@ async function getDashboardData(userId: string, companyId?: string, userRole?: s
         status: { in: ['DRAFT', 'SENT', 'UNPAID'] },
         dueDate: { lt: now },
       },
-      include: { client: true },
+      select: {
+        id: true,
+        number: true,
+        clientId: true,
+        totalAmount: true,
+        status: true,
+        dueDate: true,
+        client: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
       orderBy: { dueDate: 'asc' },
       take: 5,
     }),
@@ -97,7 +126,21 @@ async function getDashboardData(userId: string, companyId?: string, userRole?: s
         status: { in: ['DRAFT', 'SENT', 'UNPAID'] },
         dueDate: { gte: now, lte: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) },
       },
-      include: { client: true },
+      select: {
+        id: true,
+        number: true,
+        clientId: true,
+        totalAmount: true,
+        status: true,
+        dueDate: true,
+        client: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
       orderBy: { dueDate: 'asc' },
       take: 5,
     }),
@@ -155,8 +198,8 @@ export default async function DashboardPage() {
     <MainLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
+          <p className="text-gray-600 dark:text-gray-400">
             İşletmenizin genel durumunu görüntüleyin
           </p>
         </div>
@@ -384,29 +427,29 @@ export default async function DashboardPage() {
             <CardContent>
               <div className="space-y-4">
                 {dashboardData.recentTransactions.length === 0 ? (
-                  <p className="text-gray-500 text-center py-4">
+                  <p className="text-gray-500 dark:text-gray-400 text-center py-4">
                     Henüz işlem bulunmuyor
                   </p>
                 ) : (
                   dashboardData.recentTransactions.map((transaction: any) => (
                     <div
                       key={transaction.id}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                      className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700"
                     >
                       <div>
-                        <p className="font-medium">{transaction.category}</p>
-                        <p className="text-sm text-gray-600">
+                        <p className="font-medium text-gray-900 dark:text-gray-100">{transaction.category}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
                           {transaction.description}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-gray-500 dark:text-gray-500">
                           {formatDate(transaction.date)}
                         </p>
                       </div>
                       <div
                         className={`font-bold ${
                           transaction.type === 'INCOME'
-                            ? 'text-green-600'
-                            : 'text-red-600'
+                            ? 'text-green-600 dark:text-green-400'
+                            : 'text-red-600 dark:text-red-400'
                         }`}
                       >
                         {transaction.type === 'INCOME' ? '+' : '-'}
@@ -427,37 +470,37 @@ export default async function DashboardPage() {
             <CardContent>
               <div className="space-y-4">
                 {dashboardData.recentInvoices.length === 0 ? (
-                  <p className="text-gray-500 text-center py-4">
+                  <p className="text-gray-500 dark:text-gray-400 text-center py-4">
                     Henüz fatura bulunmuyor
                   </p>
                 ) : (
                   dashboardData.recentInvoices.map((invoice: any) => (
                     <div
                       key={invoice.id}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                      className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700"
                     >
                       <div>
-                        <p className="font-medium">{invoice.number}</p>
-                        <p className="text-sm text-gray-600">
+                        <p className="font-medium text-gray-900 dark:text-gray-100">{invoice.number}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
                           {invoice.client.name}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-gray-500 dark:text-gray-500">
                           {formatDate(invoice.dueDate)}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold">
+                        <p className="font-bold text-gray-900 dark:text-gray-100">
                           {formatCurrency(invoice.totalAmount)}
                         </p>
                         <span
                           className={`text-xs px-2 py-1 rounded-full ${
                             invoice.status === 'PAID'
-                              ? 'bg-green-100 text-green-800'
+                              ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
                               : invoice.status === 'SENT'
-                                ? 'bg-blue-100 text-blue-800'
+                                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300'
                                 : invoice.status === 'OVERDUE'
-                                  ? 'bg-red-100 text-red-800'
-                                  : 'bg-gray-100 text-gray-800'
+                                  ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
+                                  : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
                           }`}
                         >
                           {invoice.status === 'PAID'

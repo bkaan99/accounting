@@ -1,20 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { ClientSchema } from '@/lib/validations'
 import { createNotification } from '@/lib/notifications'
+import { handleApiError, ApiErrors } from '@/lib/error-handler'
+import { requireAuth } from '@/lib/auth-helpers'
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 })
+    const authResult = await requireAuth()
+    if ('response' in authResult) {
+      return authResult.response
     }
+    const { session } = authResult
 
     const body = await request.json()
     const validatedData = ClientSchema.parse(body)
@@ -29,11 +29,7 @@ export async function PUT(
 
     return NextResponse.json(client)
   } catch (error) {
-    console.error('Tedarikçi güncellenirken hata:', error)
-    return NextResponse.json(
-      { error: 'Tedarikçi güncellenirken hata oluştu' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'PUT /api/clients/[id]')
   }
 }
 
@@ -42,11 +38,11 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 })
+    const authResult = await requireAuth()
+    if ('response' in authResult) {
+      return authResult.response
     }
+    const { session } = authResult
 
     // Önce tedarikçi bilgilerini al (bildirim için)
     const client = await prisma.client.findUnique({
@@ -61,7 +57,7 @@ export async function DELETE(
     })
 
     if (!client) {
-      return NextResponse.json({ error: 'Tedarikçi bulunamadı' }, { status: 404 })
+      return ApiErrors.notFound('Tedarikçi bulunamadı')
     }
 
     // Tedarikçiyi sil
@@ -97,10 +93,6 @@ export async function DELETE(
 
     return NextResponse.json({ message: 'Tedarikçi silindi' })
   } catch (error) {
-    console.error('Tedarikçi silinirken hata:', error)
-    return NextResponse.json(
-      { error: 'Tedarikçi silinirken hata oluştu' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'DELETE /api/clients/[id]')
   }
 } 

@@ -19,7 +19,9 @@ import {
   HelpCircle,
   Sparkles,
   Wallet,
+  Menu,
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 const getUserMenuItems = (userRole?: string) => {
   const baseItems = [
@@ -134,9 +136,10 @@ const getUserMenuItems = (userRole?: string) => {
 
 interface SidebarProps {
   isCollapsed?: boolean
+  onToggleSidebar?: () => void
 }
 
-export function Sidebar({ isCollapsed = false }: SidebarProps) {
+export function Sidebar({ isCollapsed = false, onToggleSidebar }: SidebarProps) {
   const pathname = usePathname()
   const { data: session } = useSession()
   const menuItems = getUserMenuItems(session?.user?.role)
@@ -181,6 +184,28 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
         isCollapsed ? 'w-16' : 'w-64'
       )}
     >
+      {/* Hamburger Menü - Sidebar'ın üstünde */}
+      <div className={cn(
+        "flex items-center justify-center border-b border-gray-200/50 dark:border-gray-700/30",
+        isCollapsed ? "p-2" : "p-3"
+      )}>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onToggleSidebar}
+          className={cn(
+            "rounded-lg bg-white dark:bg-gray-800 border border-blue-500 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm flex items-center justify-center",
+            isCollapsed ? "w-12 h-12" : "w-10 h-10"
+          )}
+          aria-label="Sidebar'ı aç/kapat"
+        >
+          <Menu className={cn(
+            "text-gray-900 dark:text-gray-100",
+            isCollapsed ? "h-6 w-6" : "h-5 w-5"
+          )} />
+        </Button>
+      </div>
+
       {/* Şirket Bilgileri - Görseldeki gibi */}
       {!isCollapsed && (
         <div className="p-4 border-b border-gray-200/50 dark:border-gray-700/30 bg-white dark:bg-gray-900">
@@ -192,7 +217,7 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
                   <img 
                     src={companyLogo} 
                     alt="Şirket Logosu" 
-                    className="w-full h-full object-contain p-1"
+                    className="w-full h-full object-cover"
                   />
                 ) : (
                   <Building2 className="h-6 w-6 text-white" />
@@ -211,7 +236,10 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
         </div>
       )}
 
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+      <nav className={cn(
+        "flex-1 space-y-1 overflow-y-auto",
+        isCollapsed ? "p-2" : "p-4"
+      )}>
         {menuItems.map((item) => {
           const isActive = pathname === item.href
           const Icon = item.icon
@@ -221,10 +249,11 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
               key={item.href}
               href={item.href}
               className={cn(
-                'group flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 relative overflow-hidden',
+                'group flex items-center rounded-xl transition-all duration-300 relative overflow-hidden',
                 isActive
                   ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-700 dark:text-blue-300 shadow-lg'
-                  : 'text-gray-600 dark:text-gray-300 hover:bg-white/50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white hover:shadow-md'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-white/50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white hover:shadow-md',
+                isCollapsed ? 'justify-center p-2' : 'space-x-3 px-4 py-3'
               )}
             >
               {/* Gradient background for active item */}
@@ -234,14 +263,16 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
               
               {/* Icon with gradient background */}
               <div className={cn(
-                'relative p-2 rounded-lg transition-all duration-300',
+                'relative rounded-lg transition-all duration-300 flex items-center justify-center flex-shrink-0',
                 isActive 
                   ? `bg-gradient-to-r ${item.gradient} shadow-lg`
-                  : 'bg-gray-100 dark:bg-gray-800 group-hover:bg-gray-200 dark:group-hover:bg-gray-700'
+                  : 'bg-gray-100 dark:bg-gray-800 group-hover:bg-gray-200 dark:group-hover:bg-gray-700',
+                isCollapsed ? 'w-10 h-10' : 'p-2'
               )}>
                 <Icon className={cn(
-                  'h-4 w-4 transition-colors',
-                  isActive ? 'text-white' : 'text-gray-600 dark:text-gray-300'
+                  'transition-colors',
+                  isActive ? 'text-white' : 'text-gray-600 dark:text-gray-300',
+                  isCollapsed ? 'h-5 w-5' : 'h-4 w-4'
                 )} />
               </div>
               

@@ -36,7 +36,10 @@ export function MainLayout({ children }: MainLayoutProps) {
 
   return (
     <div className="h-screen flex bg-gray-50 dark:bg-gray-900">
-      <Sidebar isCollapsed={sidebarCollapsed} />
+      <Sidebar 
+        isCollapsed={sidebarCollapsed}
+        onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
+      />
       <div 
         className="flex-1 flex flex-col overflow-hidden transition-all duration-300"
         style={{ marginLeft: sidebarCollapsed ? '64px' : '256px' }}

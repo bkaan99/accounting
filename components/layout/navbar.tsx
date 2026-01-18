@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Menu, LogOut, User, Building2, ChevronDown, HelpCircle, Search, FileText, Users, DollarSign, Wallet, X, Settings, Sparkles } from 'lucide-react'
+import { LogOut, User, Building2, ChevronDown, HelpCircle, Search, FileText, Users, DollarSign, Wallet, X, Settings, Sparkles } from 'lucide-react'
 import { AppLogo } from '@/components/ui/app-logo'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
@@ -204,14 +204,6 @@ export function Navbar({ onToggleSidebar, sidebarCollapsed = false }: NavbarProp
         <div className="flex items-center space-x-6 flex-1 min-w-0">
           {/* Logo */}
           <div className="flex items-center space-x-3 flex-shrink-0">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onToggleSidebar}
-              className="md:hidden hover:bg-gray-100 dark:hover:bg-gray-800"
-            >
-              <Menu className="h-5 w-5" />
-            </Button>
             <Link href="/dashboard" className="flex items-center space-x-3">
               <div className="w-12 h-12 rounded-xl shadow-lg overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
                 {companyLogo ? (

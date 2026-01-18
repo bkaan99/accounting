@@ -194,8 +194,8 @@ export default function ClientsPage() {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Tedarikçiler</h1>
-            <p className="text-gray-600">Tedarikçilerinizi yönetin</p>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Tedarikçiler</h1>
+            <p className="text-gray-600 dark:text-gray-400">Tedarikçilerinizi yönetin</p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>

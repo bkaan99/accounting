@@ -249,8 +249,8 @@ export function Sidebar({ isCollapsed = false, onToggleSidebar }: SidebarProps) 
               className={cn(
                 'group flex items-center rounded-xl transition-all duration-300 relative overflow-hidden',
                 isActive
-                  ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-700 dark:text-blue-300 shadow-lg'
-                  : 'text-gray-600 dark:text-gray-300 hover:bg-white/50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white hover:shadow-md',
+                  ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-700 dark:text-white shadow-lg'
+                  : 'text-gray-600 dark:text-white hover:bg-white/50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white hover:shadow-md',
                 isCollapsed ? 'justify-center p-2' : 'space-x-3 px-4 py-3'
               )}
             >
@@ -275,7 +275,10 @@ export function Sidebar({ isCollapsed = false, onToggleSidebar }: SidebarProps) 
               </div>
               
               {!isCollapsed && (
-                <span className="relative z-10 font-medium">{item.title}</span>
+                <span className={cn(
+                  "relative z-10 font-medium",
+                  isActive ? "text-blue-700 dark:text-white" : "text-gray-600 dark:text-white"
+                )}>{item.title}</span>
               )}
               
               {/* Active indicator */}

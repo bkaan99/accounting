@@ -19,8 +19,6 @@ import {
   HelpCircle,
   Sparkles,
   Wallet,
-  ChevronUp,
-  ChevronDown,
 } from 'lucide-react'
 
 const getUserMenuItems = (userRole?: string) => {
@@ -144,7 +142,6 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
   const menuItems = getUserMenuItems(session?.user?.role)
   const [companyLogo, setCompanyLogo] = useState<string | null>(null)
   const [companyName, setCompanyName] = useState<string | null>(null)
-  const [isCompanyExpanded, setIsCompanyExpanded] = useState(true)
 
   // Şirket bilgilerini al
   useEffect(() => {
@@ -188,36 +185,26 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
       {!isCollapsed && (
         <div className="p-4 border-b border-gray-200/50 dark:border-gray-700/30 bg-white dark:bg-gray-900">
           <div className="space-y-2 pl-2">
-            {/* Şirket Logosu ve Adı - Collapsible */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3 flex-1 min-w-0">
-                <div className="w-10 h-10 rounded-lg shadow-sm overflow-hidden bg-gray-900 dark:bg-gray-800 flex items-center justify-center flex-shrink-0">
-                  {companyLogo ? (
-                    <img 
-                      src={companyLogo} 
-                      alt="Şirket Logosu" 
-                      className="w-full h-full object-contain p-1"
-                    />
-                  ) : (
-                    <Building2 className="h-6 w-6 text-white" />
-                  )}
-                </div>
-                {companyName && (
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                      {companyName}
-                    </p>
-                  </div>
+            {/* Şirket Logosu ve Adı */}
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-lg shadow-sm overflow-hidden bg-gray-900 dark:bg-gray-800 flex items-center justify-center flex-shrink-0">
+                {companyLogo ? (
+                  <img 
+                    src={companyLogo} 
+                    alt="Şirket Logosu" 
+                    className="w-full h-full object-contain p-1"
+                  />
+                ) : (
+                  <Building2 className="h-6 w-6 text-white" />
                 )}
               </div>
-              <button
-                onClick={() => setIsCompanyExpanded(!isCompanyExpanded)}
-                className="flex flex-col items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                aria-label={isCompanyExpanded ? 'Daralt' : 'Genişlet'}
-              >
-                <ChevronUp className={cn('h-3 w-3 transition-transform', !isCompanyExpanded && 'rotate-180')} />
-                <ChevronDown className={cn('h-3 w-3 transition-transform', isCompanyExpanded && 'rotate-180')} />
-              </button>
+              {companyName && (
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                    {companyName}
+                  </p>
+                </div>
+              )}
             </div>
             
           </div>

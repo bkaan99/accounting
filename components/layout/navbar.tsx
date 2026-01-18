@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Menu, LogOut, User, Building2, ChevronDown, HelpCircle, Search, FileText, Users, DollarSign, Wallet, X, Settings } from 'lucide-react'
+import { Menu, LogOut, User, Building2, ChevronDown, HelpCircle, Search, FileText, Users, DollarSign, Wallet, X, Settings, Sparkles } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatCurrency, formatDate } from '@/lib/utils'
@@ -21,6 +21,7 @@ import Link from 'next/link'
 
 interface NavbarProps {
   onToggleSidebar?: () => void
+  sidebarCollapsed?: boolean
 }
 
 interface SearchResult {
@@ -58,7 +59,7 @@ interface SearchResult {
   }>
 }
 
-export function Navbar({ onToggleSidebar }: NavbarProps) {
+export function Navbar({ onToggleSidebar, sidebarCollapsed = false }: NavbarProps) {
   const { data: session } = useSession()
   const router = useRouter()
   const [companyLogo, setCompanyLogo] = useState<string | null>(null)
@@ -203,9 +204,9 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
       </div>
 
       {/* Ana Navbar */}
-      <header className="h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-6 sticky top-0 z-50">
+      <header className="h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-6 fixed top-1 left-0 right-0 z-50">
         <div className="flex items-center space-x-6 flex-1 min-w-0">
-          {/* Logo */}
+          {/* Logo - Sidebar'daki gibi */}
           <div className="flex items-center space-x-3 flex-shrink-0">
             <Button
               variant="ghost"
@@ -215,8 +216,8 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
             >
               <Menu className="h-5 w-5" />
             </Button>
-            <Link href="/dashboard" className="flex items-center space-x-2">
-              <div className="w-8 h-8 rounded overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+            <Link href="/dashboard" className="flex items-center space-x-3">
+              <div className="w-12 h-12 rounded-xl shadow-lg overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
                 {companyLogo ? (
                   <img 
                     src={companyLogo} 
@@ -224,17 +225,27 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
                     className="w-full h-full object-contain"
                   />
                 ) : (
-                  <Building2 className="h-5 w-5 text-white" />
+                  <Building2 className="h-8 w-8 text-white" />
                 )}
               </div>
-              <span className="text-xl font-bold text-gray-900 dark:text-white hidden sm:block">
-                Muhasebe
-              </span>
+              <div className="hidden sm:block">
+                <h1 className="text-xl font-bold gradient-text">
+                  Muhasebe
+                </h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center space-x-1">
+                  <Sparkles className="h-3 w-3" />
+                  <span>Uygulaması</span>
+                </p>
+              </div>
             </Link>
           </div>
 
-          {/* Arama Çubuğu - TradingView tarzı */}
-          <div className="relative flex-1 max-w-2xl" ref={searchRef}>
+          {/* Arama Çubuğu - TradingView tarzı - Sidebar bitişinden başlıyor */}
+          <div 
+            className="relative flex-1 max-w-2xl transition-all duration-300" 
+            ref={searchRef}
+            style={{ marginLeft: sidebarCollapsed ? '0px' : '192px' }}
+          >
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input

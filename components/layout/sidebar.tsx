@@ -142,30 +142,12 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
   return (
     <div
       className={cn(
-        'flex flex-col h-full modern-sidebar transition-all duration-300',
+        'flex flex-col fixed left-0 top-[65px] bottom-0 modern-sidebar transition-all duration-300 z-40',
         isCollapsed ? 'w-16' : 'w-64'
       )}
     >
-      <div className="p-6 border-b border-gray-200/50 dark:border-gray-700/30">
-        <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 rounded-xl shadow-lg overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-            <Building2 className="h-8 w-8 text-white" />
-          </div>
-          {!isCollapsed && (
-            <div>
-              <h1 className="text-xl font-bold gradient-text">
-                Muhasebe
-              </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center space-x-1">
-                <Sparkles className="h-3 w-3" />
-                <span>Uygulaması</span>
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
 
-      <nav className="flex-1 p-4 space-y-1">
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {menuItems.map((item) => {
           const isActive = pathname === item.href
           const Icon = item.icon

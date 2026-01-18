@@ -142,7 +142,7 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
   return (
     <div
       className={cn(
-        'flex flex-col fixed left-0 top-[65px] bottom-0 modern-sidebar transition-all duration-300 z-40',
+        'flex flex-col fixed left-0 top-16 bottom-0 modern-sidebar transition-all duration-300 z-40',
         isCollapsed ? 'w-16' : 'w-64'
       )}
     >

@@ -198,13 +198,8 @@ export function Navbar({ onToggleSidebar, sidebarCollapsed = false }: NavbarProp
 
   return (
     <>
-      {/* TradingView tarzı üst banner */}
-      <div className="h-1 bg-gradient-to-r from-purple-800 via-purple-600 to-purple-800">
-        <div className="h-full bg-gradient-to-r from-purple-600/50 to-purple-400/50"></div>
-      </div>
-
       {/* Ana Navbar */}
-      <header className="h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-6 fixed top-1 left-0 right-0 z-50">
+      <header className="h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-6 fixed top-0 left-0 right-0 z-50">
         <div className="flex items-center space-x-6 flex-1 min-w-0">
           {/* Logo */}
           <div className="flex items-center space-x-3 flex-shrink-0">

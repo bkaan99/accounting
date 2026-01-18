@@ -206,7 +206,7 @@ export function Navbar({ onToggleSidebar, sidebarCollapsed = false }: NavbarProp
       {/* Ana Navbar */}
       <header className="h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-6 fixed top-1 left-0 right-0 z-50">
         <div className="flex items-center space-x-6 flex-1 min-w-0">
-          {/* Logo - Sidebar'daki gibi */}
+          {/* Logo */}
           <div className="flex items-center space-x-3 flex-shrink-0">
             <Button
               variant="ghost"
@@ -240,11 +240,11 @@ export function Navbar({ onToggleSidebar, sidebarCollapsed = false }: NavbarProp
             </Link>
           </div>
 
-          {/* Arama Çubuğu - TradingView tarzı - Sidebar bitişinden başlıyor */}
+          {/* Arama Çubuğu - Sidebar bitişinden başlıyor */}
           <div 
             className="relative flex-1 max-w-2xl transition-all duration-300" 
             ref={searchRef}
-            style={{ marginLeft: sidebarCollapsed ? '0px' : '192px' }}
+            style={{ marginLeft: sidebarCollapsed ? '64px' : '256px' }}
           >
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />

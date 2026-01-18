@@ -3,7 +3,9 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
+import { AppLogo } from '@/components/ui/app-logo'
 import {
   LayoutDashboard,
   Users,
@@ -17,6 +19,8 @@ import {
   HelpCircle,
   Sparkles,
   Wallet,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react'
 
 const getUserMenuItems = (userRole?: string) => {
@@ -138,14 +142,87 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
   const pathname = usePathname()
   const { data: session } = useSession()
   const menuItems = getUserMenuItems(session?.user?.role)
+  const [companyLogo, setCompanyLogo] = useState<string | null>(null)
+  const [companyName, setCompanyName] = useState<string | null>(null)
+  const [isCompanyExpanded, setIsCompanyExpanded] = useState(true)
+
+  // Şirket bilgilerini al
+  useEffect(() => {
+    const fetchCompanyInfo = async () => {
+      if (!session?.user?.id) return
+      
+      try {
+        const response = await fetch('/api/settings')
+        if (response.ok) {
+          const data = await response.json()
+          setCompanyLogo(data.company?.logo || null)
+          setCompanyName(data.company?.name || null)
+        }
+      } catch (error) {
+        console.error('Şirket bilgileri alınırken hata:', error)
+      }
+    }
+
+    fetchCompanyInfo()
+
+    // Logo güncelleme eventini dinle
+    const handleLogoUpdate = () => {
+      fetchCompanyInfo()
+    }
+
+    window.addEventListener('logoUpdated', handleLogoUpdate)
+    
+    return () => {
+      window.removeEventListener('logoUpdated', handleLogoUpdate)
+    }
+  }, [session?.user?.id])
 
   return (
     <div
       className={cn(
-        'flex flex-col fixed left-0 top-16 bottom-0 modern-sidebar transition-all duration-300 z-40',
+        'flex flex-col fixed left-0 top-16 bottom-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transition-all duration-300 z-40',
         isCollapsed ? 'w-16' : 'w-64'
       )}
     >
+      {/* Şirket Bilgileri - Görseldeki gibi */}
+      {!isCollapsed && (
+        <div className="p-4 border-b border-gray-200/50 dark:border-gray-700/30 bg-white dark:bg-gray-900">
+          <div className="space-y-2 pl-2">
+            {/* Şirket Logosu ve Adı - Collapsible */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3 flex-1 min-w-0">
+                <div className="w-10 h-10 rounded-lg shadow-sm overflow-hidden bg-gray-900 dark:bg-gray-800 flex items-center justify-center flex-shrink-0">
+                  {companyLogo ? (
+                    <img 
+                      src={companyLogo} 
+                      alt="Şirket Logosu" 
+                      className="w-full h-full object-contain p-1"
+                    />
+                  ) : (
+                    <Building2 className="h-6 w-6 text-white" />
+                  )}
+                </div>
+                {companyName && (
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                      {companyName}
+                    </p>
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => setIsCompanyExpanded(!isCompanyExpanded)}
+                className="flex flex-col items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                aria-label={isCompanyExpanded ? 'Daralt' : 'Genişlet'}
+              >
+                <ChevronUp className={cn('h-3 w-3 transition-transform', !isCompanyExpanded && 'rotate-180')} />
+                <ChevronDown className={cn('h-3 w-3 transition-transform', isCompanyExpanded && 'rotate-180')} />
+              </button>
+            </div>
+            
+          </div>
+        </div>
+      )}
 
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {menuItems.map((item) => {

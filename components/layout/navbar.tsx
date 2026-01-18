@@ -439,7 +439,7 @@ export function Navbar({ onToggleSidebar, sidebarCollapsed = false }: NavbarProp
           </Button>
           <ThemeToggle />
           
-          {/* Kullanıcı Profili - TradingView tarzı */}
+          {/* Kullanıcı Profili */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center space-x-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full p-1.5 transition-colors">

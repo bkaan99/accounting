@@ -184,33 +184,23 @@ export function Sidebar({ isCollapsed = false, onToggleSidebar }: SidebarProps) 
         isCollapsed ? 'w-16' : 'w-64'
       )}
     >
-      {/* Hamburger Menü - Sidebar'ın üstünde */}
-      <div className={cn(
-        "flex items-center justify-center border-b border-gray-200/50 dark:border-gray-700/30",
-        isCollapsed ? "p-2" : "p-3"
-      )}>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onToggleSidebar}
-          className={cn(
-            "rounded-lg bg-white dark:bg-gray-800 border border-blue-500 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm flex items-center justify-center",
-            isCollapsed ? "w-12 h-12" : "w-10 h-10"
-          )}
-          aria-label="Sidebar'ı aç/kapat"
-        >
-          <Menu className={cn(
-            "text-gray-900 dark:text-gray-100",
-            isCollapsed ? "h-6 w-6" : "h-5 w-5"
-          )} />
-        </Button>
-      </div>
-
-      {/* Şirket Bilgileri - Görseldeki gibi */}
-      {!isCollapsed && (
+      {/* Hamburger Menü - Collapsed durumda ayrı, açık durumda şirket bilgilerinin yanında */}
+      {isCollapsed ? (
+        <div className="flex items-center justify-center p-2 border-b border-gray-200/50 dark:border-gray-700/30">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onToggleSidebar}
+            className="w-12 h-12 rounded-lg bg-white dark:bg-gray-800 border border-blue-500 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm flex items-center justify-center"
+            aria-label="Sidebar'ı aç/kapat"
+          >
+            <Menu className="h-6 w-6 text-gray-900 dark:text-gray-100" />
+          </Button>
+        </div>
+      ) : (
         <div className="p-4 border-b border-gray-200/50 dark:border-gray-700/30 bg-white dark:bg-gray-900">
           <div className="space-y-2 pl-2">
-            {/* Şirket Logosu ve Adı */}
+            {/* Şirket Logosu, Adı ve Collapse Butonu */}
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 rounded-lg shadow-sm overflow-hidden bg-gray-900 dark:bg-gray-800 flex items-center justify-center flex-shrink-0">
                 {companyLogo ? (
@@ -230,8 +220,16 @@ export function Sidebar({ isCollapsed = false, onToggleSidebar }: SidebarProps) 
                   </p>
                 </div>
               )}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onToggleSidebar}
+                className="w-10 h-10 rounded-lg bg-white dark:bg-gray-800 border border-blue-500 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm flex-shrink-0"
+                aria-label="Sidebar'ı aç/kapat"
+              >
+                <Menu className="h-5 w-5 text-gray-900 dark:text-gray-100" />
+              </Button>
             </div>
-            
           </div>
         </div>
       )}

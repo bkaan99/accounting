@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Menu, LogOut, User, Building2, ChevronDown, HelpCircle, Search, FileText, Users, DollarSign, Wallet, X, Settings, Sparkles } from 'lucide-react'
+import { AppLogo } from '@/components/ui/app-logo'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatCurrency, formatDate } from '@/lib/utils'
@@ -220,7 +221,7 @@ export function Navbar({ onToggleSidebar, sidebarCollapsed = false }: NavbarProp
                     className="w-full h-full object-contain"
                   />
                 ) : (
-                  <Building2 className="h-8 w-8 text-white" />
+                  <AppLogo size={32} className="text-white" />
                 )}
               </div>
               <div className="hidden sm:block">

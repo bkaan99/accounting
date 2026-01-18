@@ -13,10 +13,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Menu, LogOut, User, Building2, ChevronDown, HelpCircle, Search, FileText, Users, DollarSign, Wallet, X } from 'lucide-react'
+import { Menu, LogOut, User, Building2, ChevronDown, HelpCircle, Search, FileText, Users, DollarSign, Wallet, X, Settings } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatCurrency, formatDate } from '@/lib/utils'
+import Link from 'next/link'
 
 interface NavbarProps {
   onToggleSidebar?: () => void
@@ -97,6 +98,22 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
       window.removeEventListener('logoUpdated', handleLogoUpdate)
     }
   }, [session?.user?.id])
+
+  // ⌘K kısayolu için
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        const searchInput = document.querySelector('input[type="text"][placeholder*="Ara"]') as HTMLInputElement
+        if (searchInput) {
+          searchInput.focus()
+        }
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   // Arama fonksiyonu
   useEffect(() => {
@@ -179,54 +196,50 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
   }
 
   return (
-    <header className="h-16 modern-navbar flex items-center justify-between px-6 sticky top-0 z-50">
-      <div className="flex items-center space-x-4 flex-1 min-w-0">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onToggleSidebar}
-          className="md:hidden modern-button hover:bg-blue-500/10 dark:hover:bg-blue-400/10 flex-shrink-0"
-        >
-          <Menu className="h-5 w-5" />
-        </Button>
-        <div className="flex items-center space-x-4 flex-1 min-w-0">
+    <>
+      {/* TradingView tarzı üst banner */}
+      <div className="h-1 bg-gradient-to-r from-purple-800 via-purple-600 to-purple-800">
+        <div className="h-full bg-gradient-to-r from-purple-600/50 to-purple-400/50"></div>
+      </div>
+
+      {/* Ana Navbar */}
+      <header className="h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-6 sticky top-0 z-50">
+        <div className="flex items-center space-x-6 flex-1 min-w-0">
+          {/* Logo */}
           <div className="flex items-center space-x-3 flex-shrink-0">
-            <div className="w-10 h-10 rounded-lg shadow-lg overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-              {companyLogo ? (
-                <img 
-                  src={companyLogo} 
-                  alt="Şirket Logosu" 
-                  className="w-full h-full object-contain"
-                />
-              ) : (
-                <Building2 className="h-6 w-6 text-white" />
-              )}
-            </div>
-            <div className="hidden lg:block">
-              <h2 className="text-lg font-semibold gradient-text flex items-center space-x-3">
-                <span>Hoşgeldiniz, {session?.user?.name}</span>
-                {session?.user?.role === 'SUPERADMIN' && (
-                  <span className="px-3 py-1 text-xs font-medium bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full shadow-lg">
-                    Süperadmin
-                  </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onToggleSidebar}
+              className="md:hidden hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+            <Link href="/dashboard" className="flex items-center space-x-2">
+              <div className="w-8 h-8 rounded overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                {companyLogo ? (
+                  <img 
+                    src={companyLogo} 
+                    alt="Şirket Logosu" 
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <Building2 className="h-5 w-5 text-white" />
                 )}
-              </h2>
-              {session?.user?.company && (
-                <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center space-x-1">
-                  <span>📍</span>
-                  <span>{session.user.company}</span>
-                </p>
-              )}
-            </div>
+              </div>
+              <span className="text-xl font-bold text-gray-900 dark:text-white hidden sm:block">
+                Muhasebe
+              </span>
+            </Link>
           </div>
 
-          {/* Arama Kutusu */}
-          <div className="relative flex-1 max-w-md ml-4" ref={searchRef}>
+          {/* Arama Çubuğu - TradingView tarzı */}
+          <div className="relative flex-1 max-w-2xl" ref={searchRef}>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
                 type="text"
-                placeholder="Fatura, tedarikçi, işlem ara..."
+                placeholder="Ara (⌘K)"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onFocus={() => {
@@ -234,20 +247,25 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
                     setIsSearchOpen(true)
                   }
                 }}
-                className="pl-10 pr-10 h-9 w-full"
+                className="pl-10 pr-20 h-10 w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
-              {searchQuery && (
-                <button
-                  onClick={() => {
-                    setSearchQuery('')
-                    setIsSearchOpen(false)
-                    setSearchResults(null)
-                  }}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-1">
+                {searchQuery && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery('')
+                      setIsSearchOpen(false)
+                      setSearchResults(null)
+                    }}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+                <kbd className="hidden sm:inline-flex items-center px-2 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded">
+                  ⌘K
+                </kbd>
+              </div>
             </div>
 
             {/* Arama Sonuçları */}
@@ -396,55 +414,67 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
             )}
           </div>
         </div>
-      </div>
 
-      <div className="flex items-center space-x-4 flex-shrink-0">
-        {session?.user?.id && (
-          <NotificationDropdown userId={session.user.id} />
-        )}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => router.push('/help')}
-          className="modern-button hover:bg-blue-500/10 dark:hover:bg-blue-400/10"
-          aria-label="Yardım"
-          title="Yardım"
-        >
-          <HelpCircle className="h-5 w-5" />
-        </Button>
-        <ThemeToggle />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-300 bg-gray-100/50 dark:bg-gray-800/30 px-3 py-2 rounded-lg backdrop-blur-sm hover:bg-gray-200/50 dark:hover:bg-gray-700/50"
-            >
-              <User className="h-4 w-4" />
-              <span className="hidden md:inline">{session?.user?.email}</span>
-              <ChevronDown className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>
-              <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium">{session?.user?.name}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{session?.user?.email}</p>
-                {session?.user?.company && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{session.user.company}</p>
-                )}
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={handleSignOut}
-              className="text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400 cursor-pointer"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              <span>Çıkış Yap</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </header>
+        {/* Sağ Taraf - Kullanıcı ve İkonlar */}
+        <div className="flex items-center space-x-3 flex-shrink-0">
+          {session?.user?.id && (
+            <NotificationDropdown userId={session.user.id} />
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.push('/help')}
+            className="hover:bg-gray-100 dark:hover:bg-gray-800"
+            aria-label="Yardım"
+            title="Yardım"
+          >
+            <HelpCircle className="h-5 w-5" />
+          </Button>
+          <ThemeToggle />
+          
+          {/* Kullanıcı Profili - TradingView tarzı */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center space-x-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full p-1.5 transition-colors">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-semibold">
+                  {session?.user?.name?.charAt(0).toUpperCase() || 'U'}
+                </div>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium">{session?.user?.name}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{session?.user?.email}</p>
+                  {session?.user?.company && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{session.user.company}</p>
+                  )}
+                  {session?.user?.role === 'SUPERADMIN' && (
+                    <span className="inline-block mt-1 px-2 py-0.5 text-xs font-medium bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full">
+                      Süperadmin
+                    </span>
+                  )}
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => router.push('/settings')}
+                className="cursor-pointer"
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                <span>Ayarlar</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={handleSignOut}
+                className="text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400 cursor-pointer"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                <span>Çıkış Yap</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </header>
+    </>
   )
 }

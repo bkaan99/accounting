@@ -199,8 +199,8 @@ export function Navbar({ onToggleSidebar, sidebarCollapsed = false }: NavbarProp
 
   return (
     <>
-      {/* Ana Navbar */}
-      <header className="h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-6 fixed top-0 left-0 right-0 z-50">
+      {/* Ana Navbar - Glass Effect */}
+      <header className="h-16 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md border-b border-gray-200/30 dark:border-gray-700/30 flex items-center justify-between px-6 fixed top-0 left-0 right-0 z-50 shadow-sm supports-[backdrop-filter]:bg-white/60 supports-[backdrop-filter]:dark:bg-gray-900/60">
         <div className="flex items-center space-x-6 flex-1 min-w-0">
           {/* Logo */}
           <div className="flex items-center space-x-3 flex-shrink-0">
